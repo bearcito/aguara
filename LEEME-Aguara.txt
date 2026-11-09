@@ -1,4 +1,4 @@
-AGUARÁ 0.1.8 · versión de prueba
+AGUARÁ 0.1.9 · versión de prueba
 ================================
 
 Aguará muestra y maneja desde la PC varios teléfonos Android conectados por USB.
@@ -6,7 +6,7 @@ Aguará muestra y maneja desde la PC varios teléfonos Android conectados por US
 
 1. INSTALAR
 -----------
-1. Abrí "Aguará_0.1.8_x64-setup.exe".
+1. Abrí "Aguará_0.1.9_x64-setup.exe".
    Si aparece "Windows protegió su PC", tocá "Más información" y después
    "Ejecutar de todas formas". El aviso sale porque el instalador no está firmado.
 2. No pide permisos de administrador. Queda en el menú Inicio como "Aguará".
@@ -37,16 +37,22 @@ Además, en Samsung:
 
 3. USO DIARIO
 -------------
+La pantalla
+- A la izquierda está el menú: Teléfonos, Enviar, Automatizar, Grupos y Ajustes.
+- En el medio, los teléfonos. Aparecen solos al conectarlos.
+- Abajo, la barra de acciones. A la izquierda dice SIEMPRE a qué teléfonos van las acciones:
+  los que elegiste o, si no elegiste ninguno, el último que tocaste.
+
 Ver y manejar
-- Los teléfonos aparecen solos al conectarlos. "Ver todos" arranca el video de todos.
-- Clic y arrastrar sobre la pantalla = tocar y deslizar.
-- Seleccioná varios (casilla de cada teléfono, o arrastrá desde un hueco): lo que hagas
-  en uno se repite en todos los seleccionados.
-- La barra de abajo (Atrás, Inicio, Recientes, volumen, desbloquear, bloqueo) actúa sobre
-  los seleccionados o, si no hay ninguno, sobre el último teléfono que tocaste.
-- Desbloquear: el botón del candado abierto enciende la pantalla y la desbloquea. Si el
-  teléfono tiene PIN o patrón, queda en la pantalla para escribirlo. Para deslizar a mano,
-  arrastrá hacia arriba desde el borde de abajo o desde el medio, no desde el candado.
+- Clic y arrastrar sobre la pantalla de un teléfono = tocar y deslizar.
+- Elegir teléfonos: clic en la barra de arriba de cada teléfono (se marca en azul). Otro clic
+  lo suelta. Para elegir varios de una, arrastrá desde un hueco. "Todos" y "Ninguno" arriba.
+- Lo que hagas en un teléfono elegido se repite en todos los elegidos.
+- Barra de acciones: Atrás, Inicio, Recientes, Desbloquear, Bloquear, Abrir app, Abrir link
+  copiado, Aceptar solicitudes, Captura y "Más" (audio, volumen, reiniciar video y el resto).
+- Desbloquear enciende la pantalla y la desbloquea. Si el teléfono tiene PIN o patrón, queda
+  en la pantalla para escribirlo. Para deslizar a mano, arrastrá hacia arriba desde el borde
+  de abajo o desde el medio, no desde el candado.
 
 Nombres
 - Cada teléfono tiene un número fijo ("Teléfono 1", "Teléfono 2"…) que no cambia aunque
@@ -64,9 +70,8 @@ Organizar la pantalla
 
 Texto y links
 - Ctrl+V pega en el teléfono lo que copiaste en la PC.
-- Para abrir un post, perfil o video: panel "Envío" (ícono del avión de papel, a la
-  derecha) > pegá el link > "Abrir". Se abre en la app que corresponde.
-  También: copiá el link y elegí "Abrir el link copiado en la PC" en el menú del teléfono.
+- Para abrir un post, perfil o video: copiá el link en la PC y tocá "Abrir link copiado" en la
+  barra de acciones. También: menú "Enviar" > pegá el link > "Abrir".
 
 Cuentas
 - Clic en el nombre de un teléfono: se abre su ficha, con estado, cuentas y apps.
@@ -75,25 +80,26 @@ Cuentas
   tal como lo muestra la app. Pasa siempre en Facebook, y en Instagram cuando la cuenta
   cambió de nombre de usuario. Desde ahí, el clic entra solo.
 
-Más opciones (clic derecho en la barra del teléfono)
-- Escuchar el audio del teléfono en la PC.
-- Aceptar solicitudes de amistad de Facebook.
-- Mientras algo se hace solo (aceptar solicitudes, cambiar de cuenta), arriba aparece
-  "Detener tareas": lo frena al instante. El teléfono ocupado muestra un reloj de arena.
-- Abrir apps, capturas, reiniciar el video y más.
+Más opciones (botón "Más", los tres puntos de cada teléfono, o clic derecho en su barra)
+- Escuchar el audio del teléfono en la PC, cambiar el nombre, ver la ficha, reiniciar el video.
+- Aceptar solicitudes de Facebook: frena solo cuando no quedan. Mientras algo se hace solo
+  (aceptar solicitudes, cambiar de cuenta), arriba aparece "Detener tareas": lo frena al
+  instante. El teléfono ocupado muestra un reloj de arena.
 
 Capturas
-- El ícono de la cámara guarda una captura en Imágenes\Aguará, en una carpeta por día.
+- "Captura" en la barra de acciones guarda una captura en Imágenes\Aguará, en una carpeta
+  por día.
 
 Scripts
-- Panel "Script" (ícono < >): grabá o escribí una secuencia de toques y ejecutala en
+- Menú "Automatizar": grabá o escribí una secuencia de toques y ejecutala en
   los seleccionados. La referencia de comandos está en el mismo panel.
 
 
 4. ATAJOS
 ---------
   Atrás ........................ clic derecho en la pantalla · F12 · Esc
-  Desbloquear .................. botón del candado abierto (barra de abajo)
+  Desbloquear .................. "Desbloquear" en la barra de acciones
+  Elegir un teléfono ........... clic en su barra
   Menú de opciones ............. clic derecho en la barra del teléfono
   Cambiar nombre ............... F2 (o clic derecho en la barra > "Cambiar nombre")
   Moverse por el texto ......... flechas · Inicio · Fin · Supr
@@ -108,7 +114,7 @@ La lista también está en Ajustes > "Atajos de teclado y mouse".
 
 5. BOTÓN DE PÁNICO
 ------------------
-Está arriba a la derecha. Hay que mantenerlo apretado 2 segundos para confirmar.
+Está abajo a la izquierda. Hay que mantenerlo apretado 2 segundos para confirmar.
 En TODOS los teléfonos conectados:
 - cierra todas las sesiones (Instagram, Facebook, TikTok, WhatsApp, Chrome y el resto);
 - borra los datos de las apps instaladas, incluidos los chats de WhatsApp;

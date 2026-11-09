@@ -18,6 +18,10 @@
         <symbol id="i-rec" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5.5" fill="currentColor" stroke="none" /></symbol>
         <symbol id="i-volup" viewBox="0 0 24 24"><path d="M4 10v4h3l4 3.5v-11L7 10zM15 9.5a3.5 3.5 0 0 1 0 5M17.5 7a7 7 0 0 1 0 10" /></symbol>
         <symbol id="i-voldown" viewBox="0 0 24 24"><path d="M4 10v4h3l4 3.5v-11L7 10zM15 9.5a3.5 3.5 0 0 1 0 5" /></symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" /></symbol>
+        <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6" /></symbol>
+        <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></symbol>
+        <symbol id="i-user-check" viewBox="0 0 24 24"><circle cx="10" cy="8" r="3.5" /><path d="M3.5 19.5a6.5 6.5 0 0 1 11.5-4" /><path d="m15 18 2 2 4-4.5" /></symbol>
         <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8.5 11V8a3.5 3.5 0 0 1 6.8-1.2" /></symbol>
         <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 4v7M7.05 7.05a7 7 0 1 0 9.9 0" /></symbol>
         <symbol id="i-more" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" /><circle cx="18" cy="12" r="1.6" fill="currentColor" stroke="none" /></symbol>
@@ -40,49 +44,60 @@
       <span class="splash-name">Aguará</span>
     </div>
 
-    <header class="topbar">
-      <div class="brand">
-        <svg class="brand-logo" aria-hidden="true"><use href="#i-fox" /></svg>
-        <span class="brand-name">Aguará</span>
-      </div>
-      <div class="actions">
-        <button id="refresh" class="btn ghost" data-i18n-title="btn.search">
-          <svg class="ic"><use href="#i-refresh" /></svg><span data-i18n="btn.search">Buscar</span>
-        </button>
-        <button id="start-all" class="btn primary">
-          <svg class="ic"><use href="#i-play" /></svg><span data-i18n="btn.viewAll">Ver todos</span>
-        </button>
-        <button id="stop-all" class="btn ghost">
-          <svg class="ic"><use href="#i-stop" /></svg><span data-i18n="btn.stopAll">Detener</span>
-        </button>
-      </div>
-      <div class="spacer"></div>
-      <button id="stop-tasks" class="btn stop-tasks" type="button" hidden data-i18n-title="tasks.help">
-        <svg class="ic"><use href="#i-stop" /></svg><span id="stop-tasks-label"></span>
-      </button>
-      <button id="panic" class="btn danger" type="button" data-i18n-title="panic.help">
-        <svg class="ic"><use href="#i-alert" /></svg><span data-i18n="panic.btn">Pánico</span>
-      </button>
-      <div class="pill" id="status-pill">
-        <span class="pill-dot"></span><span id="status">—</span>
-      </div>
-    </header>
-
     <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <svg class="brand-logo" aria-hidden="true"><use href="#i-fox" /></svg>
+          <span class="brand-name">Aguará</span>
+        </div>
+        <nav class="side-nav" aria-label="Secciones">
+          <button class="rail-btn" data-rail="phones" type="button"><svg class="ic"><use href="#i-phone" /></svg><span data-i18n="nav.phones">Teléfonos</span></button>
+          <button class="rail-btn" data-rail="send" type="button"><svg class="ic"><use href="#i-send" /></svg><span data-i18n="tab.send">Enviar</span></button>
+          <button class="rail-btn" data-rail="script" type="button"><svg class="ic"><use href="#i-code" /></svg><span data-i18n="tab.script">Automatizar</span></button>
+          <button class="rail-btn" data-rail="groups" type="button"><svg class="ic"><use href="#i-layers" /></svg><span data-i18n="tab.groups">Grupos</span></button>
+          <span class="rail-sep"></span>
+          <button class="rail-btn" data-rail="settings" type="button"><svg class="ic"><use href="#i-sliders" /></svg><span data-i18n="tab.settings">Ajustes</span></button>
+        </nav>
+        <div class="spacer"></div>
+        <div class="side-foot">
+          <div class="pill" id="status-pill">
+            <span class="pill-dot"></span><span id="status">—</span>
+          </div>
+          <button id="panic" class="btn danger panic-btn" type="button" data-i18n-title="panic.help">
+            <svg class="ic"><use href="#i-alert" /></svg><span data-i18n="panic.btn">Pánico</span>
+          </button>
+        </div>
+      </aside>
+
       <main class="stage">
-        <div class="stage-bar">
+        <header class="stage-head">
+          <div class="stage-title">
+            <h1 data-i18n="nav.phones">Teléfonos</h1>
+            <span class="muted" id="sel-count"></span>
+          </div>
           <div class="seg">
             <button id="select-all" class="seg-btn" data-i18n="btn.selectAll">Todos</button>
             <button id="select-none" class="seg-btn" data-i18n="btn.selectNone">Ninguno</button>
           </div>
-          <span class="muted small" id="sel-count"></span>
-          <span class="muted small sel-hint" data-i18n="sel.hint">· Arrastrá desde un espacio vacío para seleccionar · clic derecho: opciones</span>
           <div class="spacer"></div>
-          <label class="range-inline">
+          <button id="stop-tasks" class="btn stop-tasks" type="button" hidden data-i18n-title="tasks.help">
+            <svg class="ic"><use href="#i-stop" /></svg><span id="stop-tasks-label"></span>
+          </button>
+          <button id="refresh" class="btn ghost" data-i18n-title="btn.search">
+            <svg class="ic"><use href="#i-refresh" /></svg><span data-i18n="btn.search">Buscar</span>
+          </button>
+          <button id="start-all" class="btn ghost">
+            <svg class="ic"><use href="#i-play" /></svg><span data-i18n="btn.viewAll">Ver todos</span>
+          </button>
+          <button id="stop-all" class="btn ghost">
+            <svg class="ic"><use href="#i-stop" /></svg><span data-i18n="btn.stopAll">Detener</span>
+          </button>
+          <label class="range-inline" data-i18n-title="key.size">
             <svg class="ic"><use href="#i-phone" /></svg>
             <input type="range" id="tile-width" min="140" max="440" step="10" />
           </label>
-        </div>
+        </header>
+        <p class="sel-hint" data-i18n="sel.hint">Clic en la barra de un teléfono para elegirlo</p>
 
         <div id="adb-warning" class="banner" hidden>
           <svg class="ic"><use href="#i-alert" /></svg>
@@ -104,17 +119,26 @@
           <button class="btn primary" id="empty-refresh" data-i18n="btn.search">Buscar</button>
         </div>
 
-        <nav class="dock" aria-label="Navegación de grupo">
-          <span class="dock-label" data-i18n="nav.group">Seleccionados</span>
-          <button class="dock-btn" data-key="4" data-i18n-title="nav.back"><svg class="ic"><use href="#i-back" /></svg></button>
-          <button class="dock-btn" data-key="3" data-i18n-title="nav.home"><svg class="ic"><use href="#i-home" /></svg></button>
-          <button class="dock-btn" data-key="187" data-i18n-title="nav.recents"><svg class="ic"><use href="#i-recents" /></svg></button>
-          <span class="dock-sep"></span>
-          <button class="dock-btn" data-key="25" data-i18n-title="nav.volDown"><svg class="ic"><use href="#i-voldown" /></svg></button>
-          <button class="dock-btn" data-key="24" data-i18n-title="nav.volUp"><svg class="ic"><use href="#i-volup" /></svg></button>
-          <button class="dock-btn" id="dock-unlock" data-i18n-title="nav.unlock"><svg class="ic"><use href="#i-unlock" /></svg></button>
-          <button class="dock-btn" data-key="26" data-i18n-title="nav.power"><svg class="ic"><use href="#i-power" /></svg></button>
-        </nav>
+        <div class="actionbar" id="actionbar" aria-label="Acciones">
+          <div class="ab-target">
+            <span class="ab-k" id="ab-k" data-i18n="bar.for">Acciones para</span>
+            <strong id="ab-name"></strong>
+          </div>
+          <div class="ab-keys">
+            <button class="ab-icon" data-key="4" data-i18n-title="nav.back"><svg class="ic"><use href="#i-back" /></svg></button>
+            <button class="ab-icon" data-key="3" data-i18n-title="nav.home"><svg class="ic"><use href="#i-home" /></svg></button>
+            <button class="ab-icon" data-key="187" data-i18n-title="nav.recents"><svg class="ic"><use href="#i-recents" /></svg></button>
+          </div>
+          <span class="ab-sep"></span>
+          <button class="ab-btn" data-i18n-title="act.unlock" id="dock-unlock" type="button"><svg class="ic"><use href="#i-unlock" /></svg><span data-i18n="act.unlock">Desbloquear</span></button>
+          <button class="ab-btn" data-i18n-title="act.lock" data-key="26" type="button"><svg class="ic"><use href="#i-lock" /></svg><span data-i18n="act.lock">Bloquear</span></button>
+          <span class="ab-sep"></span>
+          <button class="ab-btn" data-i18n-title="act.apps" id="act-apps" type="button"><svg class="ic"><use href="#i-grid" /></svg><span data-i18n="act.apps">Abrir app</span></button>
+          <button class="ab-btn" data-i18n-title="act.link" id="act-link" type="button"><svg class="ic"><use href="#i-link" /></svg><span data-i18n="act.link">Abrir link copiado</span></button>
+          <button class="ab-btn" data-i18n-title="act.accept" id="act-accept" type="button"><svg class="ic"><use href="#i-user-check" /></svg><span data-i18n="act.accept">Aceptar solicitudes</span></button>
+          <button class="ab-btn" data-i18n-title="act.shot" id="act-shot" type="button"><svg class="ic"><use href="#i-camera" /></svg><span data-i18n="act.shot">Captura</span></button>
+          <button class="ab-btn" data-i18n-title="act.more" id="act-more" type="button"><svg class="ic"><use href="#i-more" /></svg><span data-i18n="act.more">Más</span></button>
+        </div>
       </main>
 
       <aside class="panel">
@@ -261,13 +285,6 @@ key BACK</textarea>
           <p id="app-version" class="hint small"></p>
         </section>
       </aside>
-      <nav class="rail" aria-label="Herramientas">
-        <button class="rail-btn" data-rail="send" type="button" data-i18n-title="tab.send"><svg class="ic"><use href="#i-send" /></svg></button>
-        <button class="rail-btn" data-rail="script" type="button" data-i18n-title="tab.script"><svg class="ic"><use href="#i-code" /></svg></button>
-        <button class="rail-btn" data-rail="groups" type="button" data-i18n-title="tab.groups"><svg class="ic"><use href="#i-layers" /></svg></button>
-        <span class="rail-sep"></span>
-        <button class="rail-btn" data-rail="settings" type="button" data-i18n-title="tab.settings"><svg class="ic"><use href="#i-sliders" /></svg></button>
-      </nav>
     </div>
 
     <div class="drawer-backdrop" id="drawer-backdrop"></div>
@@ -318,11 +335,12 @@ key BACK</textarea>
             <input type="checkbox" class="sel" />
             <span class="box"></span>
           </label>
-          <button class="name" type="button" data-i18n-title="tile.nameHelp"></button>
           <span class="dot" title=""></span>
+          <button class="name" type="button" data-i18n-title="tile.nameHelp"></button>
+          <span class="head-fill"></span>
           <button class="expand" type="button" data-i18n-title="tile.expand"><svg class="ic"><use href="#i-expand" /></svg></button>
           <button class="shot" type="button" data-i18n-title="tile.shot"><svg class="ic"><use href="#i-camera" /></svg></button>
-          <button class="more" type="button" data-i18n-title="tile.openDetails">
+          <button class="more" type="button" data-i18n-title="tile.options">
             <svg class="ic"><use href="#i-more" /></svg>
           </button>
         </div>

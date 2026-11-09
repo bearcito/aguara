@@ -155,6 +155,36 @@ function updateSelCount() {
   $<HTMLSpanElement>("sel-count").textContent = tiles.size
     ? t("sel.count", { n: selectedSerials().length, total: tiles.size })
     : "";
+  updateActionBar();
+}
+
+/** Teléfonos a los que van las acciones de la barra: los seleccionados o, si no hay, el último
+ *  que se tocó. */
+function actionTargets(): string[] {
+  const sel = selectedSerials();
+  if (sel.length) return sel;
+  return focused && tiles.has(focused) ? [focused] : [];
+}
+
+/** La barra de abajo dice siempre a qué teléfonos van las acciones. */
+function updateActionBar() {
+  const bar = document.getElementById("actionbar");
+  if (!bar) return;
+  const targets = actionTargets();
+  const name = $("ab-name");
+  const k = $("ab-k");
+  bar.classList.toggle("no-target", targets.length === 0);
+  if (!targets.length) {
+    k.textContent = t("bar.none");
+    name.textContent = t("bar.noneHint");
+  } else {
+    k.textContent = t("bar.for");
+    name.textContent =
+      targets.length === 1
+        ? displayName(tiles.get(targets[0])!)
+        : t("bar.many", { n: targets.length });
+  }
+  for (const b of bar.querySelectorAll<HTMLButtonElement>("button")) b.disabled = targets.length === 0;
 }
 
 function selectedSerials(): string[] {
@@ -272,7 +302,10 @@ function ensureTile(d: DeviceInfo): Tile {
   });
   (frag.querySelector(".expand") as HTMLButtonElement).addEventListener("click", () => openSpotlight(d.serial));
   initReorder(tile, frag.querySelector(".tile-head") as HTMLElement);
-  (frag.querySelector(".more") as HTMLButtonElement).addEventListener("click", () => void openDetails(d.serial));
+  (frag.querySelector(".more") as HTMLButtonElement).addEventListener("click", (e) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    openTileMenu(tile, r.left, r.bottom + 4);
+  });
   // Captura de este teléfono (o de todos los seleccionados si está seleccionado).
   (frag.querySelector(".shot") as HTMLButtonElement).addEventListener("click", () => void takeShots(touchTargets(d.serial)));
 
@@ -421,11 +454,20 @@ function initReorder(tile: Tile, head: HTMLElement) {
       const r = over.getBoundingClientRect();
       grid.insertBefore(tile.el, ev.clientX > r.left + r.width / 2 ? over.nextSibling : over);
     };
-    const up = () => {
+    const onName = !!(e.target as HTMLElement).closest(".name, .name-edit");
+    const up = (ev: PointerEvent) => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
-      if (!dragging) return;
+      if (!dragging) {
+        // Clic suelto en la barra (fuera del nombre): elegir o soltar este teléfono.
+        if (!onName && ev.type === "pointerup") {
+          setSelected(tile, !tile.sel.checked);
+          setFocus(tile.serial);
+          updateSelCount();
+        }
+        return;
+      }
       tile.el.classList.remove("reordering");
       saveOrder();
       // El clic que llega al soltar no abre la ficha.
@@ -552,6 +594,7 @@ async function runPanic() {
 function setFocus(serial: string) {
   focused = serial;
   for (const [s, x] of tiles) x.el.classList.toggle("focused", s === serial);
+  updateActionBar();
 }
 
 // ---------- Selección por recuadro (clic izquierdo + arrastrar, como en el escritorio) ----------
@@ -872,6 +915,8 @@ function openTileMenu(tile: Tile, x: number, y: number) {
     { label: t("nav.back"), run: keys(4) },
     { label: t("nav.home"), run: keys(3) },
     { label: t("nav.recents"), run: keys(187) },
+    { label: t("act.volUp"), run: keys(24) },
+    { label: t("act.volDown"), run: keys(25) },
     { label: t("nav.unlock"), run: () => unlockScreens(targets) },
     { label: t("dv.power"), run: keys(26) },
     { label: t("menu.paste"), run: () => pastePcClipboard(targets) },
@@ -2099,8 +2144,9 @@ function initRail() {
   const layout = document.querySelector<HTMLElement>(".layout")!;
   const rails = [...document.querySelectorAll<HTMLButtonElement>(".rail-btn")];
   const open = (tab: string | null) => {
+    if (tab === "phones") tab = null;
     layout.classList.toggle("panel-closed", !tab);
-    for (const r of rails) r.classList.toggle("active", r.dataset.rail === tab);
+    for (const r of rails) r.classList.toggle("active", r.dataset.rail === (tab ?? "phones"));
     if (tab) {
       document.querySelector<HTMLButtonElement>(`.tab[data-tab="${tab}"]`)?.click();
       $("panel-title").textContent = t(`tab.${tab}`);
@@ -2113,6 +2159,7 @@ function initRail() {
   };
   for (const r of rails) {
     r.addEventListener("click", () => open(r.classList.contains("active") ? null : r.dataset.rail!));
+    r.title = r.textContent?.trim() ?? "";
   }
   $("panel-close").addEventListener("click", () => open(null));
   let saved: string | null = null;
@@ -2188,17 +2235,46 @@ $("select-none").addEventListener("click", () => {
 function unlockScreens(serials: string[]) {
   return forEachSerial(serials, (s) => invoke("unlock_screen", { serial: s }));
 }
-$("dock-unlock").addEventListener("click", () => {
-  const targets = selectedSerials().length ? selectedSerials() : focused ? [focused] : [];
-  void unlockScreens(targets);
-});
-for (const btn of document.querySelectorAll<HTMLButtonElement>(".dock-btn[data-key]")) {
+// ---------- Barra de acciones (abajo) ----------
+$("dock-unlock").addEventListener("click", () => void unlockScreens(actionTargets()));
+for (const btn of document.querySelectorAll<HTMLButtonElement>("#actionbar [data-key]")) {
   btn.addEventListener("click", () => {
     const keycode = Number(btn.dataset.key);
-    const targets = selectedSerials().length ? selectedSerials() : focused ? [focused] : [];
-    for (const s of targets) void keyTo(s, keycode);
+    for (const s of actionTargets()) void keyTo(s, keycode);
   });
 }
+const below = (id: string) => {
+  const r = $(id).getBoundingClientRect();
+  return { x: r.left, y: r.top };
+};
+$("act-apps").addEventListener("click", () => {
+  const targets = actionTargets();
+  const { x, y } = below("act-apps");
+  showMenu(x, y - 8, [
+    { title: t("act.apps") },
+    ...QUICK_APPS.map((pkg) => SOCIAL_APPS.find((a) => a.pkg === pkg)!).map((a) => ({
+      label: a.label,
+      run: () => forEachSerial(targets, (s) => invoke("launch_app", { serial: s, package: a.pkg })),
+    })),
+  ]);
+  // El menú se abre hacia arriba, sobre la barra.
+  if (menuEl) menuEl.style.top = `${Math.max(8, y - menuEl.getBoundingClientRect().height - 8)}px`;
+});
+$("act-link").addEventListener("click", () => void openCopiedUrl(actionTargets()));
+$("act-accept").addEventListener("click", () => void acceptFriendRequests(actionTargets()));
+$("act-shot").addEventListener("click", () => void takeShots(actionTargets()));
+$("act-more").addEventListener("click", () => {
+  const targets = actionTargets();
+  const tile = tiles.get(targets[0]);
+  if (!tile) return;
+  const { x, y } = below("act-more");
+  openTileMenu(tile, x, y);
+  if (menuEl) {
+    const r = menuEl.getBoundingClientRect();
+    menuEl.style.top = `${Math.max(8, y - r.height - 8)}px`;
+    menuEl.style.left = `${Math.min(x, window.innerWidth - r.width - 8)}px`;
+  }
+});
 
 $("script-run").addEventListener("click", () => void runScript());
 $("script-stop").addEventListener("click", () => {
