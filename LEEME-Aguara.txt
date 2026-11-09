@@ -1,0 +1,142 @@
+AGUARÁ 0.1.8 · versión de prueba
+================================
+
+Aguará muestra y maneja desde la PC varios teléfonos Android conectados por USB.
+
+
+1. INSTALAR
+-----------
+1. Abrí "Aguará_0.1.8_x64-setup.exe".
+   Si aparece "Windows protegió su PC", tocá "Más información" y después
+   "Ejecutar de todas formas". El aviso sale porque el instalador no está firmado.
+2. No pide permisos de administrador. Queda en el menú Inicio como "Aguará".
+3. La primera vez que la abras necesita internet un minuto para descargar adb,
+   la herramienta oficial de Google para comunicarse con los teléfonos.
+   Si al principio no aparece ninguno, esperá y tocá "Buscar".
+
+
+2. PREPARAR CADA TELÉFONO (una sola vez)
+----------------------------------------
+Todos los teléfonos:
+1. Activá las Opciones de desarrollador: tocá 7 veces el número de compilación.
+   - Xiaomi/Redmi: Ajustes > Sobre el teléfono > "Versión de HyperOS" (o MIUI).
+   - Samsung: Ajustes > Acerca del teléfono > Información de software > "Número de compilación".
+2. En Opciones de desarrollador, activá "Depuración USB".
+3. Conectalo por USB y aceptá "¿Permitir depuración USB?" con
+   "Permitir siempre desde esta computadora" marcado.
+
+Además, en Xiaomi/Redmi:
+- Activá "Depuración USB (ajustes de seguridad)". Sin esto se ve la pantalla pero
+  los toques no llegan.
+
+Además, en Samsung:
+- Instalá en la PC el "Samsung Android USB Driver" (sitio de Samsung para desarrolladores).
+- Desactivá Ajustes > Seguridad y privacidad > "Bloqueador automático". Si está activo,
+  bloquea la depuración USB.
+
+
+3. USO DIARIO
+-------------
+Ver y manejar
+- Los teléfonos aparecen solos al conectarlos. "Ver todos" arranca el video de todos.
+- Clic y arrastrar sobre la pantalla = tocar y deslizar.
+- Seleccioná varios (casilla de cada teléfono, o arrastrá desde un hueco): lo que hagas
+  en uno se repite en todos los seleccionados.
+- La barra de abajo (Atrás, Inicio, Recientes, volumen, desbloquear, bloqueo) actúa sobre
+  los seleccionados o, si no hay ninguno, sobre el último teléfono que tocaste.
+- Desbloquear: el botón del candado abierto enciende la pantalla y la desbloquea. Si el
+  teléfono tiene PIN o patrón, queda en la pantalla para escribirlo. Para deslizar a mano,
+  arrastrá hacia arriba desde el borde de abajo o desde el medio, no desde el candado.
+
+Nombres
+- Cada teléfono tiene un número fijo ("Teléfono 1", "Teléfono 2"…) que no cambia aunque
+  lo muevas de lugar. Sirve para pegarle el mismo número al aparato.
+- Para ponerle el nombre que quieras: clic derecho en su barra > "Cambiar nombre", o tocá
+  la pantalla del teléfono y apretá F2. Si lo dejás vacío, vuelve al número.
+- En Ajustes podés mostrar el modelo en vez del número, o renumerarlos según el orden
+  de la grilla.
+
+Organizar la pantalla
+- Tamaño: Ctrl + rueda del mouse, o Ctrl + / Ctrl −.
+- Ver uno en grande: doble clic en la barra del teléfono, o el botón de las flechas.
+  Esc o clic afuera lo devuelve a la grilla.
+- Orden: arrastrá la barra de un teléfono hasta donde lo quieras. El orden se guarda.
+
+Texto y links
+- Ctrl+V pega en el teléfono lo que copiaste en la PC.
+- Para abrir un post, perfil o video: panel "Envío" (ícono del avión de papel, a la
+  derecha) > pegá el link > "Abrir". Se abre en la app que corresponde.
+  También: copiá el link y elegí "Abrir el link copiado en la PC" en el menú del teléfono.
+
+Cuentas
+- Clic en el nombre de un teléfono: se abre su ficha, con estado, cuentas y apps.
+- Clic en una cuenta: abre la app y entra en esa cuenta.
+- Si el clic abre la app pero no entra solo en la cuenta, ponele con el lápiz el nombre
+  tal como lo muestra la app. Pasa siempre en Facebook, y en Instagram cuando la cuenta
+  cambió de nombre de usuario. Desde ahí, el clic entra solo.
+
+Más opciones (clic derecho en la barra del teléfono)
+- Escuchar el audio del teléfono en la PC.
+- Aceptar solicitudes de amistad de Facebook.
+- Mientras algo se hace solo (aceptar solicitudes, cambiar de cuenta), arriba aparece
+  "Detener tareas": lo frena al instante. El teléfono ocupado muestra un reloj de arena.
+- Abrir apps, capturas, reiniciar el video y más.
+
+Capturas
+- El ícono de la cámara guarda una captura en Imágenes\Aguará, en una carpeta por día.
+
+Scripts
+- Panel "Script" (ícono < >): grabá o escribí una secuencia de toques y ejecutala en
+  los seleccionados. La referencia de comandos está en el mismo panel.
+
+
+4. ATAJOS
+---------
+  Atrás ........................ clic derecho en la pantalla · F12 · Esc
+  Desbloquear .................. botón del candado abierto (barra de abajo)
+  Menú de opciones ............. clic derecho en la barra del teléfono
+  Cambiar nombre ............... F2 (o clic derecho en la barra > "Cambiar nombre")
+  Moverse por el texto ......... flechas · Inicio · Fin · Supr
+  Pegar ........................ Ctrl+V
+  Tamaño de las pantallas ...... Ctrl + rueda · Ctrl + / Ctrl −
+  Ver uno en grande ............ doble clic en la barra del teléfono
+  Cambiar el orden ............. arrastrar la barra del teléfono
+  Seleccionar varios ........... arrastrar desde un hueco · Ctrl+clic en el marco
+
+La lista también está en Ajustes > "Atajos de teclado y mouse".
+
+
+5. BOTÓN DE PÁNICO
+------------------
+Está arriba a la derecha. Hay que mantenerlo apretado 2 segundos para confirmar.
+En TODOS los teléfonos conectados:
+- cierra todas las sesiones (Instagram, Facebook, TikTok, WhatsApp, Chrome y el resto);
+- borra los datos de las apps instaladas, incluidos los chats de WhatsApp;
+- apaga la pantalla.
+No se puede deshacer. No es un restablecimiento de fábrica: las apps siguen instaladas
+y las cuentas de Google siguen iniciadas.
+
+
+6. SI ALGO NO ANDA
+------------------
+- No aparece un teléfono: probá otro cable (tiene que ser de datos) y aceptá el aviso
+  de depuración en el teléfono.
+- Faltan teléfonos y arriba aparece "Otro adb abierto…": tocá "Liberar teléfonos".
+  Pasa cuando queda abierto otro adb (de otra app o de una sesión vieja) que se quedó
+  con algunos teléfonos.
+- Los teléfonos aparecen y desaparecen: cerrá Panda, scrcpy y cualquier otro programa
+  que use adb. Aguará comparte el adb de Panda para no pelearse, pero lo más estable
+  es tener una sola app abierta.
+- Se desconectan con muchos teléfonos: usá un hub USB con fuente propia. Los puertos de
+  la PC solos no siempre dan la corriente suficiente.
+- Se ve la pantalla pero no responde: en Xiaomi/Redmi falta "Depuración USB (ajustes de
+  seguridad)"; en Samsung, desactivar el "Bloqueador automático".
+
+
+7. FEEDBACK
+-----------
+Para cada problema mandá:
+- la versión (Ajustes, al final del panel);
+- qué hiciste, qué esperabas y qué pasó;
+- marca y modelo del teléfono;
+- una captura, si podés.

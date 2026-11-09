@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#1d1b24"/>
+  <!-- Cabeza con orejas -->
+  <polygon points="112,84 212,182 300,182 400,84 418,252 256,430 94,252" fill="#f0761d"/>
+  <!-- Interior de las orejas -->
+  <polygon points="134,128 194,188 146,226" fill="#7a3510"/>
+  <polygon points="378,128 318,188 366,226" fill="#7a3510"/>
+  <!-- Frente más oscura -->
+  <polygon points="212,182 300,182 256,262" fill="#d9600f"/>
+  <!-- Cachetes y hocico blancos -->
+  <polygon points="94,252 196,266 256,336 316,266 418,252 256,430" fill="#fff4e8"/>
+  <!-- Ojos -->
+  <ellipse cx="190" cy="242" rx="17" ry="10" transform="rotate(18 190 242)" fill="#1d1b24"/>
+  <ellipse cx="322" cy="242" rx="17" ry="10" transform="rotate(-18 322 242)" fill="#1d1b24"/>
+  <!-- Nariz -->
+  <polygon points="232,398 280,398 256,430" fill="#1d1b24"/>
+</svg>

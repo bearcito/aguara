@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aguará</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7" /></symbol>
+        <symbol id="i-home" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5" /></symbol>
+        <symbol id="i-recents" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" /></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none" /></symbol>
+        <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" stroke="none" /></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.05-4.95M19 4.5V8h-3.5" /></symbol>
+        <symbol id="i-rec" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5.5" fill="currentColor" stroke="none" /></symbol>
+        <symbol id="i-volup" viewBox="0 0 24 24"><path d="M4 10v4h3l4 3.5v-11L7 10zM15 9.5a3.5 3.5 0 0 1 0 5M17.5 7a7 7 0 0 1 0 10" /></symbol>
+        <symbol id="i-voldown" viewBox="0 0 24 24"><path d="M4 10v4h3l4 3.5v-11L7 10zM15 9.5a3.5 3.5 0 0 1 0 5" /></symbol>
+        <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8.5 11V8a3.5 3.5 0 0 1 6.8-1.2" /></symbol>
+        <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 4v7M7.05 7.05a7 7 0 1 0 9.9 0" /></symbol>
+        <symbol id="i-more" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" /><circle cx="18" cy="12" r="1.6" fill="currentColor" stroke="none" /></symbol>
+        <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></symbol>
+        <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2.5" /><path d="M11 18h2" /></symbol>
+        <symbol id="i-fox" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#1d1b24"/><polygon points="112,84 212,182 300,182 400,84 418,252 256,430 94,252" fill="#f0761d"/><polygon points="134,128 194,188 146,226" fill="#7a3510"/><polygon points="378,128 318,188 366,226" fill="#7a3510"/><polygon points="212,182 300,182 256,262" fill="#d9600f"/><polygon points="94,252 196,266 256,336 316,266 418,252 256,430" fill="#fff4e8"/><ellipse cx="190" cy="242" rx="17" ry="10" transform="rotate(18 190 242)" fill="#1d1b24"/><ellipse cx="322" cy="242" rx="17" ry="10" transform="rotate(-18 322 242)" fill="#1d1b24"/><polygon points="232,398 280,398 256,430" fill="#1d1b24"/></symbol>
+        <symbol id="i-edit" viewBox="0 0 24 24"><path d="M14.5 5.5l4 4M4 20l1-4.5L15.5 5a1.4 1.4 0 0 1 2 0l1.5 1.5a1.4 1.4 0 0 1 0 2L8.5 19z" /></symbol>
+        <symbol id="i-code" viewBox="0 0 24 24"><path d="M9 7 4 12l5 5M15 7l5 5-5 5" /></symbol>
+        <symbol id="i-send" viewBox="0 0 24 24"><path d="M20 4 3.5 10.5l7 2.5 2.5 7z" /><path d="M10.5 13 20 4" /></symbol>
+        <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 4 3 9l9 5 9-5z" /><path d="M3 14l9 5 9-5" /></symbol>
+        <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M5 7h9M18 7h1M5 17h3M12 17h7" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></symbol>
+        <symbol id="i-expand" viewBox="0 0 24 24"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" /></symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19z" /><path d="M12 10v4.5M12 17.2v.1" /></symbol>
+        <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2l1.5-2h6l1.5 2h2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z" /><circle cx="12" cy="12.5" r="3.5" /></symbol>
+      </defs>
+    </svg>
+
+    <div id="splash" class="splash" aria-hidden="true">
+      <svg class="splash-logo"><use href="#i-fox" /></svg>
+      <span class="splash-name">Aguará</span>
+    </div>
+
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-logo" aria-hidden="true"><use href="#i-fox" /></svg>
+        <span class="brand-name">Aguará</span>
+      </div>
+      <div class="actions">
+        <button id="refresh" class="btn ghost" data-i18n-title="btn.search">
+          <svg class="ic"><use href="#i-refresh" /></svg><span data-i18n="btn.search">Buscar</span>
+        </button>
+        <button id="start-all" class="btn primary">
+          <svg class="ic"><use href="#i-play" /></svg><span data-i18n="btn.viewAll">Ver todos</span>
+        </button>
+        <button id="stop-all" class="btn ghost">
+          <svg class="ic"><use href="#i-stop" /></svg><span data-i18n="btn.stopAll">Detener</span>
+        </button>
+      </div>
+      <div class="spacer"></div>
+      <button id="stop-tasks" class="btn stop-tasks" type="button" hidden data-i18n-title="tasks.help">
+        <svg class="ic"><use href="#i-stop" /></svg><span id="stop-tasks-label"></span>
+      </button>
+      <button id="panic" class="btn danger" type="button" data-i18n-title="panic.help">
+        <svg class="ic"><use href="#i-alert" /></svg><span data-i18n="panic.btn">Pánico</span>
+      </button>
+      <div class="pill" id="status-pill">
+        <span class="pill-dot"></span><span id="status">—</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <main class="stage">
+        <div class="stage-bar">
+          <div class="seg">
+            <button id="select-all" class="seg-btn" data-i18n="btn.selectAll">Todos</button>
+            <button id="select-none" class="seg-btn" data-i18n="btn.selectNone">Ninguno</button>
+          </div>
+          <span class="muted small" id="sel-count"></span>
+          <span class="muted small sel-hint" data-i18n="sel.hint">· Arrastrá desde un espacio vacío para seleccionar · clic derecho: opciones</span>
+          <div class="spacer"></div>
+          <label class="range-inline">
+            <svg class="ic"><use href="#i-phone" /></svg>
+            <input type="range" id="tile-width" min="140" max="440" step="10" />
+          </label>
+        </div>
+
+        <div id="adb-warning" class="banner" hidden>
+          <svg class="ic"><use href="#i-alert" /></svg>
+          <span id="adb-warning-text"></span>
+          <div class="spacer"></div>
+          <button id="adb-free" class="btn small-btn" type="button" data-i18n="adb.free">Liberar teléfonos</button>
+        </div>
+        <div id="grid" class="grid"></div>
+
+        <div id="empty" class="empty">
+          <svg class="empty-ic" aria-hidden="true"><use href="#i-fox" /></svg>
+          <h2 data-i18n="empty.title">Conectá tus teléfonos</h2>
+          <p data-i18n="empty.body">Aguará los encuentra solo apenas los enchufás por USB.</p>
+          <ol class="steps">
+            <li><b>1</b><span data-i18n="empty.s1">Activá la depuración USB en Opciones de desarrollador.</span></li>
+            <li><b>2</b><span data-i18n="empty.s2">En Xiaomi y Redmi, activá también la depuración USB con ajustes de seguridad.</span></li>
+            <li><b>3</b><span data-i18n="empty.s3">Enchufalo y aceptá el aviso de depuración en el teléfono.</span></li>
+          </ol>
+          <button class="btn primary" id="empty-refresh" data-i18n="btn.search">Buscar</button>
+        </div>
+
+        <nav class="dock" aria-label="Navegación de grupo">
+          <span class="dock-label" data-i18n="nav.group">Seleccionados</span>
+          <button class="dock-btn" data-key="4" data-i18n-title="nav.back"><svg class="ic"><use href="#i-back" /></svg></button>
+          <button class="dock-btn" data-key="3" data-i18n-title="nav.home"><svg class="ic"><use href="#i-home" /></svg></button>
+          <button class="dock-btn" data-key="187" data-i18n-title="nav.recents"><svg class="ic"><use href="#i-recents" /></svg></button>
+          <span class="dock-sep"></span>
+          <button class="dock-btn" data-key="25" data-i18n-title="nav.volDown"><svg class="ic"><use href="#i-voldown" /></svg></button>
+          <button class="dock-btn" data-key="24" data-i18n-title="nav.volUp"><svg class="ic"><use href="#i-volup" /></svg></button>
+          <button class="dock-btn" id="dock-unlock" data-i18n-title="nav.unlock"><svg class="ic"><use href="#i-unlock" /></svg></button>
+          <button class="dock-btn" data-key="26" data-i18n-title="nav.power"><svg class="ic"><use href="#i-power" /></svg></button>
+        </nav>
+      </main>
+
+      <aside class="panel">
+        <div class="panel-head">
+          <h2 id="panel-title"></h2>
+          <button id="panel-close" class="icon-btn" type="button" data-i18n-title="panel.close"><svg class="ic"><use href="#i-close" /></svg></button>
+        </div>
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="script" data-i18n="tab.script">Script</button>
+          <button class="tab" data-tab="send" data-i18n="tab.send">Envío</button>
+          <button class="tab" data-tab="groups" data-i18n="tab.groups">Grupos</button>
+          <button class="tab" data-tab="settings" data-i18n="tab.settings">Ajustes</button>
+        </div>
+
+        <section class="pane active" data-pane="script">
+          <p class="hint" data-i18n="script.help">Se ejecuta en los seleccionados (o en el enfocado).</p>
+          <div class="row">
+            <button id="rec" class="btn ghost"><svg class="ic rec-ic"><use href="#i-rec" /></svg><span id="rec-label" data-i18n="script.rec">Grabar</span></button>
+            <div class="spacer"></div>
+            <button id="script-stop" class="btn ghost" disabled><svg class="ic"><use href="#i-stop" /></svg><span data-i18n="script.stop">Detener</span></button>
+            <button id="script-run" class="btn primary"><svg class="ic"><use href="#i-play" /></svg><span data-i18n="script.run">Ejecutar</span></button>
+          </div>
+          <textarea id="script" spellcheck="false" rows="12">loop 3
+  tap 540 1200
+  sleep 1000
+  swipe 540 1500 540 600 300
+  sleep 1000
+end
+key BACK</textarea>
+          <div id="script-status" class="feedback"></div>
+          <details class="ref">
+            <summary data-i18n="script.ref">Referencia de comandos</summary>
+            <dl>
+              <dt>tap x y</dt><dd data-i18n="ref.tap">Toque en coordenadas del video</dd>
+              <dt>swipe x1 y1 x2 y2 [ms]</dt><dd data-i18n="ref.swipe">Deslizar</dd>
+              <dt>text …</dt><dd data-i18n="ref.text">Escribir texto</dd>
+              <dt>key BACK|HOME|RECENTS|ENTER|DEL|TAB</dt><dd data-i18n="ref.key">Tecla</dd>
+              <dt>sleep ms</dt><dd data-i18n="ref.sleep">Esperar</dd>
+              <dt>loop N … end</dt><dd data-i18n="ref.loop">Repetir un bloque</dd>
+              <dt>tapimage ruta.png [umbral]</dt><dd data-i18n="ref.tapimage">Tocar donde aparece una imagen</dd>
+              <dt>waitimage ruta.png [ms] [umbral]</dt><dd data-i18n="ref.waitimage">Esperar a que aparezca una imagen</dd>
+            </dl>
+          </details>
+        </section>
+
+        <section class="pane" data-pane="send">
+          <p class="hint" data-i18n="send.help">Se aplica a todos los teléfonos seleccionados.</p>
+          <label class="field">
+            <span data-i18n="send.url">Abrir link (post, perfil, video…)</span>
+            <div class="row">
+              <input type="url" id="dist-url" placeholder="https://www.instagram.com/p/…" />
+              <button id="dist-open-url" class="btn" data-i18n="send.openUrl">Abrir</button>
+            </div>
+          </label>
+          <label class="field">
+            <span data-i18n="send.text">Texto</span>
+            <div class="row">
+              <input type="text" id="dist-text" data-i18n-placeholder="send.textPh" />
+              <button id="dist-send-text" class="btn" data-i18n="send.write">Escribir</button>
+            </div>
+          </label>
+          <label class="field">
+            <span data-i18n="send.apk">Instalar APK</span>
+            <div class="row">
+              <input type="text" id="dist-apk" placeholder="C:\ruta\app.apk" />
+              <button id="dist-install" class="btn" data-i18n="send.install">Instalar</button>
+            </div>
+          </label>
+          <label class="field">
+            <span data-i18n="send.file">Enviar archivo a Descargas</span>
+            <div class="row">
+              <input type="text" id="dist-file" placeholder="C:\ruta\archivo.jpg" />
+              <button id="dist-push" class="btn" data-i18n="send.push">Enviar</button>
+            </div>
+          </label>
+          <div class="field">
+            <span data-i18n="send.shot">Capturas de pantalla</span>
+            <button id="dist-screenshot" class="btn" data-i18n="send.shotBtn">Capturar seleccionados</button>
+          </div>
+          <div id="dist-status" class="feedback"></div>
+        </section>
+
+        <section class="pane" data-pane="groups">
+          <p class="hint" data-i18n="groups.help">Guardá conjuntos de teléfonos para seleccionarlos de un clic.</p>
+          <label class="field">
+            <span data-i18n="groups.new">Nuevo grupo con la selección actual</span>
+            <div class="row">
+              <input type="text" id="group-name" data-i18n-placeholder="groups.namePh" />
+              <button id="group-save" class="btn" data-i18n="groups.save">Guardar</button>
+            </div>
+          </label>
+          <div id="group-list" class="chips"></div>
+          <div id="group-status" class="feedback"></div>
+        </section>
+
+        <section class="pane" data-pane="settings">
+          <p class="hint" data-i18n="settings.help">Los cambios de video se aplican al reiniciar los streams.</p>
+          <label class="field">
+            <span><span data-i18n="settings.maxSize">Resolución (lado mayor)</span> <output id="out-size"></output></span>
+            <input type="range" id="set-size" min="360" max="1600" step="40" />
+          </label>
+          <label class="field">
+            <span><span data-i18n="settings.fps">FPS</span> <output id="out-fps"></output></span>
+            <input type="range" id="set-fps" min="1" max="30" step="1" />
+          </label>
+          <label class="field">
+            <span><span data-i18n="settings.bitrate">Bitrate</span> <output id="out-bitrate"></output></span>
+            <input type="range" id="set-bitrate" min="0.5" max="8" step="0.5" />
+          </label>
+          <label class="field">
+            <span><span data-i18n="settings.quality">Calidad de imagen</span> <output id="out-quality"></output></span>
+            <input type="range" id="set-quality" min="1" max="10" step="1" />
+          </label>
+          <label class="check">
+            <input type="checkbox" id="set-autostart" />
+            <span data-i18n="settings.autostart">Iniciar video automáticamente al conectar</span>
+          </label>
+          <label class="field">
+            <span data-i18n="settings.naming">Nombre de los teléfonos</span>
+            <select id="set-naming">
+              <option value="number" data-i18n="settings.namingNumber">Número (Teléfono 1, 2, 3…)</option>
+              <option value="model" data-i18n="settings.namingModel">Modelo</option>
+            </select>
+          </label>
+          <button id="renumber" class="btn" type="button" data-i18n="settings.renumber">Numerar según el orden actual</button>
+          <label class="field">
+            <span data-i18n="settings.language">Idioma</span>
+            <select id="set-lang"></select>
+          </label>
+          <button id="restart-streams" class="btn" data-i18n="settings.restart">Reiniciar el video de todos</button>
+          <details class="ref keys">
+            <summary data-i18n="settings.keys">Atajos de teclado y mouse</summary>
+            <dl>
+              <dt>Clic derecho en la pantalla · F12 · Esc</dt><dd data-i18n="key.back">Atrás</dd>
+              <dt>Clic derecho en la barra</dt><dd data-i18n="key.menu">Menú de opciones del teléfono</dd>
+              <dt>Flechas · Inicio · Fin · Supr</dt><dd data-i18n="key.text">Moverse por el texto</dd>
+              <dt>Ctrl+V</dt><dd data-i18n="key.paste">Pegar lo copiado en la PC</dd>
+              <dt>Ctrl + rueda · Ctrl + / −</dt><dd data-i18n="key.size">Tamaño de las pantallas</dd>
+              <dt>Doble clic en la barra</dt><dd data-i18n="key.large">Ver un teléfono en grande</dd>
+              <dt>Arrastrar la barra</dt><dd data-i18n="key.order">Cambiar el orden</dd>
+              <dt>Arrastrar en un hueco · Ctrl+clic</dt><dd data-i18n="key.select">Seleccionar varios</dd>
+            </dl>
+          </details>
+          <p id="app-version" class="hint small"></p>
+        </section>
+      </aside>
+      <nav class="rail" aria-label="Herramientas">
+        <button class="rail-btn" data-rail="send" type="button" data-i18n-title="tab.send"><svg class="ic"><use href="#i-send" /></svg></button>
+        <button class="rail-btn" data-rail="script" type="button" data-i18n-title="tab.script"><svg class="ic"><use href="#i-code" /></svg></button>
+        <button class="rail-btn" data-rail="groups" type="button" data-i18n-title="tab.groups"><svg class="ic"><use href="#i-layers" /></svg></button>
+        <span class="rail-sep"></span>
+        <button class="rail-btn" data-rail="settings" type="button" data-i18n-title="tab.settings"><svg class="ic"><use href="#i-sliders" /></svg></button>
+      </nav>
+    </div>
+
+    <div class="drawer-backdrop" id="drawer-backdrop"></div>
+    <aside class="drawer" id="drawer" aria-hidden="true" role="dialog" aria-labelledby="dv-alias">
+      <header class="drawer-head">
+        <div class="drawer-title">
+          <input type="text" id="dv-alias" class="alias-input" data-i18n-placeholder="dv.aliasPh" />
+          <div class="muted small" id="dv-sub"></div>
+        </div>
+        <button class="icon-btn" id="dv-refresh" data-i18n-title="dv.refresh"><svg class="ic"><use href="#i-refresh" /></svg></button>
+        <button class="icon-btn" id="dv-close" data-i18n-title="dv.close"><svg class="ic"><use href="#i-close" /></svg></button>
+      </header>
+      <div class="drawer-body">
+        <section class="dv-section">
+          <h3 data-i18n="dv.status">Estado</h3>
+          <div class="stats" id="dv-stats"></div>
+        </section>
+        <section class="dv-section">
+          <div class="dv-section-head">
+            <h3><span data-i18n="dv.accounts">Cuentas</span> <span class="count-badge" id="dv-acc-count"></span></h3>
+            <button class="btn ghost small-btn" id="dv-acc-settings" data-i18n="dv.accSettings">Ajustes de cuentas</button>
+          </div>
+          <div id="dv-accounts" class="acc-list"></div>
+          <p class="hint small" data-i18n="dv.accHint">Algunas apps (WhatsApp, TikTok) no registran su cuenta en Android: ahí solo se ve si están instaladas.</p>
+        </section>
+        <section class="dv-section">
+          <h3 data-i18n="dv.apps">Apps</h3>
+          <div id="dv-apps" class="app-grid"></div>
+        </section>
+        <section class="dv-section">
+          <h3 data-i18n="dv.actions">Acciones</h3>
+          <div class="action-grid">
+            <button class="btn" id="dv-shot" data-i18n="dv.shot">Captura</button>
+            <button class="btn" id="dv-power" data-i18n="dv.power">Encender / bloquear</button>
+            <button class="btn" id="dv-restart-stream" data-i18n="dv.restartStream">Reiniciar video</button>
+            <button class="btn" id="dv-copy-serial" data-i18n="dv.copySerial">Copiar serial</button>
+            <button class="btn danger" id="dv-reboot" data-i18n="dv.reboot">Reiniciar teléfono</button>
+          </div>
+          <div id="dv-feedback" class="feedback"></div>
+        </section>
+      </div>
+    </aside>
+
+    <template id="tile-tpl">
+      <div class="tile">
+        <div class="tile-head">
+          <label class="tile-sel">
+            <input type="checkbox" class="sel" />
+            <span class="box"></span>
+          </label>
+          <button class="name" type="button" data-i18n-title="tile.nameHelp"></button>
+          <span class="dot" title=""></span>
+          <button class="expand" type="button" data-i18n-title="tile.expand"><svg class="ic"><use href="#i-expand" /></svg></button>
+          <button class="shot" type="button" data-i18n-title="tile.shot"><svg class="ic"><use href="#i-camera" /></svg></button>
+          <button class="more" type="button" data-i18n-title="tile.openDetails">
+            <svg class="ic"><use href="#i-more" /></svg>
+          </button>
+        </div>
+        <div class="screen">
+          <canvas></canvas>
+          <div class="overlay">
+            <span class="spinner"></span>
+            <span class="overlay-msg"></span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <script type="module" src="/src/main.ts"></script>
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+
+    <div id="spotlight" class="spotlight" aria-hidden="true">
+      <div class="spot-bar">
+        <span id="spot-name" class="spot-name"></span>
+        <span class="muted small" data-i18n="spot.hint">Esc o clic afuera para volver</span>
+        <div class="spacer"></div>
+        <button id="spot-close" class="icon-btn" type="button" data-i18n-title="spot.close"><svg class="ic"><use href="#i-close" /></svg></button>
+      </div>
+      <div id="spot-stage" class="spot-stage"></div>
+    </div>
+
+    <div id="panic-dialog" class="modal" aria-hidden="true">
+      <div class="modal-card" role="alertdialog" aria-labelledby="panic-title">
+        <h2 id="panic-title" data-i18n="panic.title">Borrar los datos de todos los teléfonos</h2>
+        <p id="panic-body"></p>
+        <ul class="panic-list">
+          <li data-i18n="panic.l1">Se cierran todas las sesiones: Instagram, Facebook, TikTok, WhatsApp, Chrome y el resto.</li>
+          <li data-i18n="panic.l2">Se borran los datos de todas las apps que instalaron. Las apps quedan instaladas.</li>
+          <li data-i18n="panic.l3">Se apaga la pantalla de cada teléfono.</li>
+        </ul>
+        <p class="hint" data-i18n="panic.note">No se puede deshacer.</p>
+        <div class="row">
+          <button id="panic-cancel" class="btn ghost" type="button" data-i18n="panic.cancel">Cancelar</button>
+          <div class="spacer"></div>
+          <button id="panic-hold" class="btn danger hold" type="button"><span class="hold-fill"></span><span class="hold-label" data-i18n="panic.hold">Mantené apretado para borrar</span></button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

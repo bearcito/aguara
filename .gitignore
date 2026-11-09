@@ -1,0 +1,24 @@
+# Rust / Tauri
+/src-tauri/target/
+/src-tauri/target-*/
+# Node
+/node_modules/
+/dist/
+# Binarios de terceros (ver src-tauri/vendor/README.md)
+/src-tauri/vendor/*.jar
+/src-tauri/vendor/ffmpeg/
+/src-tauri/binaries/
+# Instaladores y notas locales
+/para-compartir/
+/docs/
+/PANDA_PROTOCOL.md
+/ARQUITECTURA_CLIENTE.md
+*.exe
+*.zip
+# Herramientas locales
+/.claude/
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

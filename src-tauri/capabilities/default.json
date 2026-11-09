@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permisos de la ventana principal: eventos del core (video-frame, session-ended) y APIs básicas.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

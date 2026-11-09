@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Aguará",
+  "version": "0.1.8",
+  "identifier": "tools.panda.client",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Aguará",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 860,
+        "minHeight": 560,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "publisher": "Aguará",
+    "category": "Utility",
+    "shortDescription": "Control de varios teléfonos Android desde la PC",
+    "resources": {
+      "vendor/scrcpy-server.jar": "vendor/scrcpy-server.jar",
+      "vendor/ffmpeg/ffmpeg.exe": "ffmpeg.exe",
+      "vendor/ffmpeg/ffplay.exe": "ffplay.exe"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    },
+    "windows": {
+      "nsis": {
+        "languages": [
+          "Spanish",
+          "English"
+        ],
+        "installMode": "currentUser",
+        "displayLanguageSelector": false
+      }
+    }
+  },
+  "mainBinaryName": "aguara"
+}
