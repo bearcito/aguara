@@ -931,7 +931,7 @@ function openTileMenu(tile: Tile, x: number, y: number) {
       ? { label: t("menu.audioOff"), run: () => toggleAudio(tile.serial, false) }
       : { label: t("menu.audioOn"), run: () => toggleAudio(tile.serial, true) },
     { label: t("dv.shot"), run: () => takeShots(targets) },
-    { label: t("menu.shotsDir"), run: () => invoke("open_shots_dir") },
+    { label: t("menu.shotsDir"), run: () => invoke("open_shots_dir", { day: null }) },
     {
       label: t("dv.restartStream"),
       run: () =>
@@ -1129,13 +1129,31 @@ function shotPath(serial: string): string {
 }
 
 /** Captura los teléfonos y marca cada tarjeta un instante como confirmación. */
-function takeShots(serials: string[]) {
-  return forEachSerial(serials, async (s) => {
-    await invoke<string>("screenshot", { serial: s, out: shotPath(s) });
+async function takeShots(serials: string[]) {
+  let ok = 0;
+  let lastErr = "";
+  let day = "";
+  await forEachSerial(serials, async (s) => {
+    const out = shotPath(s);
+    day = out.split("/")[0];
+    try {
+      await invoke<string>("screenshot", { serial: s, out });
+      ok++;
+    } catch (e) {
+      lastErr = String(e);
+      return;
+    }
     const el = tiles.get(s)?.el;
     el?.classList.add("shot-flash");
     setTimeout(() => el?.classList.remove("shot-flash"), 400);
   });
+  if (ok) {
+    toast(t("shot.saved", { n: ok, day }), "ok", 7000, {
+      label: t("shot.open"),
+      run: () => invoke("open_shots_dir", { day }).catch((e) => toast(String(e), "err")),
+    });
+  }
+  if (lastErr) toast(t("shot.failed", { n: serials.length - ok, e: lastErr }), "err");
 }
 
 // ---------- Ficha del teléfono ----------
@@ -1886,12 +1904,20 @@ async function runOps(serial: string, ops: Op[]) {
 }
 
 /** Aviso breve abajo a la derecha; desaparece solo. */
-function toast(msg: string, kind: "" | "ok" | "err" = "", ms = 5000) {
+function toast(msg: string, kind: "" | "ok" | "err" = "", ms = 5000, action?: { label: string; run: () => unknown }) {
   const box = document.getElementById("toasts");
   if (!box) return;
   const el = document.createElement("div");
   el.className = `toast ${kind}`;
   el.textContent = msg;
+  if (action) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "toast-act";
+    b.textContent = action.label;
+    b.addEventListener("click", () => void action.run());
+    el.appendChild(b);
+  }
   box.appendChild(el);
   setTimeout(() => {
     el.classList.add("out");
@@ -2275,6 +2301,182 @@ $("act-more").addEventListener("click", () => {
     menuEl.style.left = `${Math.min(x, window.innerWidth - r.width - 8)}px`;
   }
 });
+
+// ---------- Diseño: columnas, espacio y botones de la barra (los elige cada uno) ----------
+interface LayoutPrefs {
+  /** 0 = automático según el tamaño. */
+  cols: number;
+  gap: "tight" | "normal" | "wide";
+  bar: "bottom" | "top" | "hidden";
+  labels: boolean;
+  items: { id: string; on: boolean }[];
+}
+const AB_ITEMS = ["nav", "unlock", "lock", "apps", "link", "accept", "shot", "more"];
+const AB_LABEL: Record<string, string> = {
+  nav: "lay.nav", unlock: "act.unlock", lock: "act.lock", apps: "act.apps",
+  link: "act.link", accept: "act.accept", shot: "act.shot", more: "act.more",
+};
+const LAYOUT_DEFAULT: LayoutPrefs = {
+  cols: 0,
+  gap: "normal",
+  bar: "bottom",
+  labels: true,
+  items: AB_ITEMS.map((id) => ({ id, on: true })),
+};
+function loadLayout(): LayoutPrefs {
+  try {
+    const l = { ...LAYOUT_DEFAULT, ...JSON.parse(localStorage.getItem("aguara.layout") ?? "{}") } as LayoutPrefs;
+    // Botones nuevos que no estaban guardados se agregan al final; los desconocidos se descartan.
+    const known = l.items.filter((i) => AB_ITEMS.includes(i.id));
+    for (const id of AB_ITEMS) if (!known.some((i) => i.id === id)) known.push({ id, on: true });
+    l.items = known;
+    return l;
+  } catch {
+    return structuredClone(LAYOUT_DEFAULT);
+  }
+}
+let layoutPrefs = loadLayout();
+function saveLayout() {
+  try {
+    localStorage.setItem("aguara.layout", JSON.stringify(layoutPrefs));
+  } catch {
+    /* sin almacenamiento: vale hasta cerrar */
+  }
+}
+function applyLayout() {
+  const l = layoutPrefs;
+  const grid = $("grid");
+  const stage = document.querySelector<HTMLElement>(".stage")!;
+  grid.classList.toggle("fixed-cols", l.cols > 0);
+  grid.style.setProperty("--cols", String(l.cols || 1));
+  grid.dataset.gap = l.gap;
+  stage.dataset.bar = l.bar;
+  stage.classList.toggle("ab-icons", !l.labels);
+  const box = $("ab-items");
+  for (const it of l.items) {
+    const el = box.querySelector<HTMLElement>(`[data-ab="${it.id}"]`);
+    if (!el) continue;
+    el.hidden = !it.on;
+    box.appendChild(el);
+  }
+  // Con columnas fijas el tamaño lo da el ancho de la ventana.
+  $<HTMLInputElement>("tile-width").disabled = l.cols > 0;
+  $<HTMLInputElement>("lp-size").disabled = l.cols > 0;
+}
+function renderLayoutPop() {
+  const l = layoutPrefs;
+  const cols = $("lp-cols");
+  cols.replaceChildren(
+    ...[0, 1, 2, 3, 4, 5, 6, 7, 8].map((n) => {
+      const b = document.createElement("button");
+      b.className = "seg-btn";
+      b.textContent = n === 0 ? t("lay.auto") : String(n);
+      b.classList.toggle("active", l.cols === n);
+      b.addEventListener("click", () => {
+        l.cols = n;
+        commitLayout();
+      });
+      return b;
+    }),
+  );
+  for (const b of document.querySelectorAll<HTMLButtonElement>("#lp-gap .seg-btn"))
+    b.classList.toggle("active", b.dataset.v === l.gap);
+  for (const b of document.querySelectorAll<HTMLButtonElement>("#lp-pos .seg-btn"))
+    b.classList.toggle("active", b.dataset.v === l.bar);
+  $<HTMLInputElement>("lp-labels").checked = l.labels;
+  $<HTMLInputElement>("lp-size").value = String(settings.tileWidth);
+  const list = $("lp-list");
+  list.replaceChildren(
+    ...l.items.map((it, i) => {
+      const li = document.createElement("li");
+      const lab = document.createElement("label");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = it.on;
+      // "Más" siempre queda: es la puerta al resto de las acciones.
+      cb.disabled = it.id === "more";
+      cb.addEventListener("change", () => {
+        it.on = cb.checked;
+        commitLayout();
+      });
+      const span = document.createElement("span");
+      span.textContent = t(AB_LABEL[it.id]);
+      lab.append(cb, span);
+      const move = (d: number) => {
+        const j = i + d;
+        if (j < 0 || j >= l.items.length) return;
+        [l.items[i], l.items[j]] = [l.items[j], l.items[i]];
+        commitLayout();
+      };
+      const mk = (txt: string, title: string, d: number, off: boolean) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "lp-move";
+        b.textContent = txt;
+        b.title = t(title);
+        b.disabled = off;
+        b.addEventListener("click", () => move(d));
+        return b;
+      };
+      li.append(lab, mk("↑", "lay.up", -1, i === 0), mk("↓", "lay.down", 1, i === l.items.length - 1));
+      return li;
+    }),
+  );
+}
+function commitLayout() {
+  saveLayout();
+  applyLayout();
+  renderLayoutPop();
+}
+{
+  const pop = $("layout-pop");
+  const btn = $("layout-btn");
+  const setOpen = (on: boolean) => {
+    pop.hidden = !on;
+    btn.setAttribute("aria-expanded", String(on));
+    btn.classList.toggle("active", on);
+    if (on) {
+      renderLayoutPop();
+      const r = btn.getBoundingClientRect();
+      const host = document.querySelector<HTMLElement>(".stage")!.getBoundingClientRect();
+      pop.style.top = `${r.bottom - host.top + 6}px`;
+      pop.style.right = `${Math.max(8, host.right - r.right)}px`;
+    }
+  };
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    setOpen(pop.hidden);
+  });
+  document.addEventListener("pointerdown", (e) => {
+    if (!pop.hidden && !pop.contains(e.target as Node) && !btn.contains(e.target as Node)) setOpen(false);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !pop.hidden) setOpen(false);
+  });
+  for (const b of document.querySelectorAll<HTMLButtonElement>("#lp-gap .seg-btn"))
+    b.addEventListener("click", () => {
+      layoutPrefs.gap = b.dataset.v as LayoutPrefs["gap"];
+      commitLayout();
+    });
+  for (const b of document.querySelectorAll<HTMLButtonElement>("#lp-pos .seg-btn"))
+    b.addEventListener("click", () => {
+      layoutPrefs.bar = b.dataset.v as LayoutPrefs["bar"];
+      commitLayout();
+    });
+  $<HTMLInputElement>("lp-labels").addEventListener("change", (e) => {
+    layoutPrefs.labels = (e.target as HTMLInputElement).checked;
+    commitLayout();
+  });
+  $<HTMLInputElement>("lp-size").addEventListener("input", (e) => {
+    setTileWidth(Number((e.target as HTMLInputElement).value));
+    saveSettings();
+  });
+  $("lp-reset").addEventListener("click", () => {
+    layoutPrefs = structuredClone(LAYOUT_DEFAULT);
+    commitLayout();
+  });
+  applyLayout();
+}
 
 $("script-run").addEventListener("click", () => void runScript());
 $("script-stop").addEventListener("click", () => {

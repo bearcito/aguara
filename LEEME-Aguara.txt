@@ -1,5 +1,5 @@
-AGUARÁ 0.1.9 · versión de prueba
-================================
+AGUARÁ 0.1.10 · versión de prueba
+=================================
 
 Aguará muestra y maneja desde la PC varios teléfonos Android conectados por USB.
 
@@ -50,6 +50,9 @@ Ver y manejar
 - Lo que hagas en un teléfono elegido se repite en todos los elegidos.
 - Barra de acciones: Atrás, Inicio, Recientes, Desbloquear, Bloquear, Abrir app, Abrir link
   copiado, Aceptar solicitudes, Captura y "Más" (audio, volumen, reiniciar video y el resto).
+- Botón "Diseño" (arriba): elegí cuántas columnas de teléfonos, el tamaño y el espacio; y en
+  la barra de acciones, si va abajo, arriba u oculta, qué botones se ven y en qué orden.
+  "Volver al diseño original" deshace todo.
 - Desbloquear enciende la pantalla y la desbloquea. Si el teléfono tiene PIN o patrón, queda
   en la pantalla para escribirlo. Para deslizar a mano, arrastrá hacia arriba desde el borde
   de abajo o desde el medio, no desde el candado.
@@ -87,8 +90,9 @@ Más opciones (botón "Más", los tres puntos de cada teléfono, o clic derecho 
   instante. El teléfono ocupado muestra un reloj de arena.
 
 Capturas
-- "Captura" en la barra de acciones guarda una captura en Imágenes\Aguará, en una carpeta
-  por día.
+- "Captura" en la barra de acciones guarda una captura EN LA PC (no en el teléfono), en
+  Imágenes\Aguará, con una carpeta por día (por ejemplo 2026-11-09). Al sacarla aparece un
+  aviso con el botón "Abrir carpeta".
 
 Scripts
 - Menú "Automatizar": grabá o escribí una secuencia de toques y ejecutala en

@@ -92,11 +92,34 @@
           <button id="stop-all" class="btn ghost">
             <svg class="ic"><use href="#i-stop" /></svg><span data-i18n="btn.stopAll">Detener</span>
           </button>
+          <button id="layout-btn" class="btn ghost" type="button" aria-haspopup="dialog" aria-expanded="false">
+            <svg class="ic"><use href="#i-grid" /></svg><span data-i18n="lay.btn">Diseño</span>
+          </button>
           <label class="range-inline" data-i18n-title="key.size">
             <svg class="ic"><use href="#i-phone" /></svg>
             <input type="range" id="tile-width" min="140" max="440" step="10" />
           </label>
         </header>
+        <div id="layout-pop" class="layout-pop" role="dialog" aria-label="Diseño" hidden>
+          <h3 data-i18n="lay.phones">Teléfonos</h3>
+          <div class="lp-row"><span data-i18n="lay.cols">Columnas</span><div class="seg" id="lp-cols"></div></div>
+          <div class="lp-row"><span data-i18n="lay.size">Tamaño</span><input type="range" id="lp-size" min="140" max="440" step="10" /></div>
+          <div class="lp-row"><span data-i18n="lay.gap">Espacio</span><div class="seg" id="lp-gap">
+            <button class="seg-btn" data-v="tight" data-i18n="lay.gapTight">Junto</button>
+            <button class="seg-btn" data-v="normal" data-i18n="lay.gapNormal">Normal</button>
+            <button class="seg-btn" data-v="wide" data-i18n="lay.gapWide">Amplio</button>
+          </div></div>
+          <h3 data-i18n="lay.bar">Barra de acciones</h3>
+          <div class="lp-row"><span data-i18n="lay.pos">Lugar</span><div class="seg" id="lp-pos">
+            <button class="seg-btn" data-v="bottom" data-i18n="lay.bottom">Abajo</button>
+            <button class="seg-btn" data-v="top" data-i18n="lay.top">Arriba</button>
+            <button class="seg-btn" data-v="hidden" data-i18n="lay.hidden">Oculta</button>
+          </div></div>
+          <label class="lp-check"><input type="checkbox" id="lp-labels" /><span data-i18n="lay.labels">Nombres en los botones</span></label>
+          <p class="lp-note" data-i18n="lay.buttons">Botones</p>
+          <ol class="lp-list" id="lp-list"></ol>
+          <button class="btn ghost lp-reset" id="lp-reset" type="button" data-i18n="lay.reset">Volver al diseño original</button>
+        </div>
         <p class="sel-hint" data-i18n="sel.hint">Clic en la barra de un teléfono para elegirlo</p>
 
         <div id="adb-warning" class="banner" hidden>
@@ -124,20 +147,20 @@
             <span class="ab-k" id="ab-k" data-i18n="bar.for">Acciones para</span>
             <strong id="ab-name"></strong>
           </div>
-          <div class="ab-keys">
-            <button class="ab-icon" data-key="4" data-i18n-title="nav.back"><svg class="ic"><use href="#i-back" /></svg></button>
-            <button class="ab-icon" data-key="3" data-i18n-title="nav.home"><svg class="ic"><use href="#i-home" /></svg></button>
-            <button class="ab-icon" data-key="187" data-i18n-title="nav.recents"><svg class="ic"><use href="#i-recents" /></svg></button>
+          <div class="ab-items" id="ab-items">
+            <div class="ab-keys" data-ab="nav">
+              <button class="ab-icon" data-key="4" data-i18n-title="nav.back"><svg class="ic"><use href="#i-back" /></svg></button>
+              <button class="ab-icon" data-key="3" data-i18n-title="nav.home"><svg class="ic"><use href="#i-home" /></svg></button>
+              <button class="ab-icon" data-key="187" data-i18n-title="nav.recents"><svg class="ic"><use href="#i-recents" /></svg></button>
+            </div>
+            <button class="ab-btn" data-ab="unlock" id="dock-unlock" type="button"><svg class="ic"><use href="#i-unlock" /></svg><span data-i18n="act.unlock">Desbloquear</span></button>
+            <button class="ab-btn" data-ab="lock" data-key="26" type="button"><svg class="ic"><use href="#i-lock" /></svg><span data-i18n="act.lock">Bloquear</span></button>
+            <button class="ab-btn" data-ab="apps" id="act-apps" type="button"><svg class="ic"><use href="#i-grid" /></svg><span data-i18n="act.apps">Abrir app</span></button>
+            <button class="ab-btn" data-ab="link" id="act-link" type="button"><svg class="ic"><use href="#i-link" /></svg><span data-i18n="act.link">Abrir link copiado</span></button>
+            <button class="ab-btn" data-ab="accept" id="act-accept" type="button"><svg class="ic"><use href="#i-user-check" /></svg><span data-i18n="act.accept">Aceptar solicitudes</span></button>
+            <button class="ab-btn" data-ab="shot" id="act-shot" type="button"><svg class="ic"><use href="#i-camera" /></svg><span data-i18n="act.shot">Captura</span></button>
+            <button class="ab-btn" data-ab="more" id="act-more" type="button"><svg class="ic"><use href="#i-more" /></svg><span data-i18n="act.more">Más</span></button>
           </div>
-          <span class="ab-sep"></span>
-          <button class="ab-btn" data-i18n-title="act.unlock" id="dock-unlock" type="button"><svg class="ic"><use href="#i-unlock" /></svg><span data-i18n="act.unlock">Desbloquear</span></button>
-          <button class="ab-btn" data-i18n-title="act.lock" data-key="26" type="button"><svg class="ic"><use href="#i-lock" /></svg><span data-i18n="act.lock">Bloquear</span></button>
-          <span class="ab-sep"></span>
-          <button class="ab-btn" data-i18n-title="act.apps" id="act-apps" type="button"><svg class="ic"><use href="#i-grid" /></svg><span data-i18n="act.apps">Abrir app</span></button>
-          <button class="ab-btn" data-i18n-title="act.link" id="act-link" type="button"><svg class="ic"><use href="#i-link" /></svg><span data-i18n="act.link">Abrir link copiado</span></button>
-          <button class="ab-btn" data-i18n-title="act.accept" id="act-accept" type="button"><svg class="ic"><use href="#i-user-check" /></svg><span data-i18n="act.accept">Aceptar solicitudes</span></button>
-          <button class="ab-btn" data-i18n-title="act.shot" id="act-shot" type="button"><svg class="ic"><use href="#i-camera" /></svg><span data-i18n="act.shot">Captura</span></button>
-          <button class="ab-btn" data-i18n-title="act.more" id="act-more" type="button"><svg class="ic"><use href="#i-more" /></svg><span data-i18n="act.more">Más</span></button>
         </div>
       </main>
 

@@ -416,8 +416,12 @@ fn shots_dir() -> std::path::PathBuf {
 
 /// Abre la carpeta de capturas en el Explorador.
 #[tauri::command]
-pub fn open_shots_dir() -> Result<(), String> {
-    let dir = shots_dir();
+pub fn open_shots_dir(day: Option<String>) -> Result<(), String> {
+    let mut dir = shots_dir();
+    // Abrir directamente la carpeta del día, si se pidió una válida (AAAA-MM-DD).
+    if let Some(d) = day.filter(|d| d.len() == 10 && d.chars().all(|c| c.is_ascii_digit() || c == '-')) {
+        dir = dir.join(d);
+    }
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     std::process::Command::new("explorer").arg(&dir).spawn().map(|_| ()).map_err(|e| e.to_string())
 }
@@ -656,6 +660,20 @@ pub async fn accept_friend_requests(serial: String, max: Option<u32>, state: Sta
         let result = (|| -> Result<u32, String> {
         // Al pedir detener, se corta en la próxima espera y se devuelve lo aceptado hasta ahí.
         let pause = |ms: u64| wait_unless_stopped(ms, &flag);
+        // uiautomator a veces devuelve vacío (videos o animaciones en pantalla): reintentar antes
+        // de concluir nada, y nunca tomar una lectura vacía como "no hay solicitudes".
+        let read_screen = || -> Result<Vec<crate::domain::ui::UiNode>, String> {
+            for _ in 0..3 {
+                let nodes = parse_nodes(&sh(DUMP_SCRIPT)?);
+                if !nodes.is_empty() {
+                    return Ok(nodes);
+                }
+                if !wait_unless_stopped(700, &flag) {
+                    break;
+                }
+            }
+            Err("no pude leer la pantalla de Facebook (si hay un video andando, pausalo y probá de nuevo)".into())
+        };
 
         // Encender y sacar el bloqueo: con la pantalla bloqueada Facebook no se ve ni se puede tocar.
         sh("input keyevent 224; wm dismiss-keyguard")?;
@@ -664,10 +682,7 @@ pub async fn accept_friend_requests(serial: String, max: Option<u32>, state: Sta
             return Ok(0);
         }
         // La pantalla de Amigos abre en sugerencias: pasar a la pestaña de solicitudes.
-        let nodes = parse_nodes(&sh(DUMP_SCRIPT)?);
-        if nodes.is_empty() {
-            return Err("no pude leer la pantalla de Facebook (¿pantalla bloqueada?)".into());
-        }
+        let nodes = read_screen()?;
         if let Some(tab) = nodes.iter().find(|n| {
             let d = n.desc.trim().to_lowercase();
             d == "solicitudes de amistad" || d == "friend requests"
@@ -692,7 +707,11 @@ pub async fn accept_friend_requests(serial: String, max: Option<u32>, state: Sta
         };
         while accepted < max && !stopped(&flag) {
             // Una sola lectura de pantalla por tanda: leerla tarda 2–3 s.
-            let nodes = parse_nodes(&sh(DUMP_SCRIPT)?);
+            let nodes = match read_screen() {
+                Ok(n) => n,
+                Err(_) if accepted > 0 => break,
+                Err(e) => return Err(e),
+            };
             saw_facebook |= nodes.iter().any(|n| n.package == "com.facebook.katana");
             // Facebook avisa cuando no queda ninguna: terminar ahí, sin recorrer las sugerencias.
             let none_left = nodes.iter().any(|n| {
@@ -740,8 +759,13 @@ pub async fn accept_friend_requests(serial: String, max: Option<u32>, state: Sta
                     break;
                 }
                 // Si alguien cambió de app en el teléfono, no tocar: el toque caería en otra app.
-                let focus = sh("dumpsys window | grep -m1 mCurrentFocus")?;
-                if !focus.contains("com.facebook.katana") {
+                // Con el espejo activo el teléfono lista más de una pantalla y la primera suele
+                // decir `mCurrentFocus=null`: mirar todas las líneas, no solo la primera.
+                let focus = sh("dumpsys window | grep -E 'mCurrentFocus|mFocusedApp'")?;
+                let other_app = focus.lines().any(|l| {
+                    l.contains("u0 ") && !l.contains("com.facebook.katana") && !l.contains("=null")
+                });
+                if !focus.contains("com.facebook.katana") || other_app {
                     return if accepted > 0 {
                         Ok(accepted)
                     } else {
