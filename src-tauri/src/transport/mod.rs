@@ -44,15 +44,13 @@ pub fn hide_window(_cmd: &mut std::process::Command) {}
 /// Ejecutable de adb. Si ya hay un server de adb corriendo (por ejemplo el de Panda), se usa ese
 /// mismo programa: un adb de otra versión mata al server que encuentra y arranca el suyo, y si
 /// otra app hace lo mismo, los teléfonos se desconectan y reconectan sin parar. Si no hay
-/// ninguno, el que la app descargó junto a sí misma (`platform-tools/`) o el del PATH.
+/// ninguno, el que la app descargó (`platform-tools/`), uno instalado en las carpetas usuales
+/// (Homebrew, SDK de Android) o el del PATH.
 pub fn adb_exe() -> std::path::PathBuf {
     if let Some(p) = running_server_adb() {
         return p;
     }
-    match local_adb() {
-        Some(p) if p.exists() => p,
-        _ => std::path::PathBuf::from("adb"),
-    }
+    crate::platform::tool_or_path("adb")
 }
 
 /// Programa del server de adb que está corriendo, si hay uno. Se revisa cada pocos segundos
@@ -111,23 +109,7 @@ pub fn foreign_adb_servers() -> Vec<ForeignAdb> {
     if adb_pids.is_empty() {
         return Vec::new();
     }
-    let mut netstat = std::process::Command::new("netstat");
-    netstat.args(["-ano", "-p", "TCP"]).stdin(std::process::Stdio::null());
-    hide_window(&mut netstat);
-    let Ok(out) = netstat.output() else { return Vec::new() };
-    // "TCP  127.0.0.1:5038  0.0.0.0:0  LISTENING  18736"
-    let mut by_pid: std::collections::HashMap<u32, Vec<u16>> = std::collections::HashMap::new();
-    for line in String::from_utf8_lossy(&out.stdout).lines() {
-        let cols: Vec<&str> = line.split_whitespace().collect();
-        let [_, local, _, state, pid] = cols[..] else { continue };
-        let (Ok(pid), Some(port)) = (pid.parse::<u32>(), local.rsplit(':').next().and_then(|p| p.parse::<u16>().ok()))
-        else {
-            continue;
-        };
-        if state == "LISTENING" && adb_pids.contains(&pid) {
-            by_pid.entry(pid).or_default().push(port);
-        }
-    }
+    let by_pid = listening_ports(&adb_pids);
     by_pid
         .values()
         .filter(|ports| !ports.contains(&5037))
@@ -136,6 +118,67 @@ pub fn foreign_adb_servers() -> Vec<ForeignAdb> {
         .filter_map(|ports| ports.iter().copied().filter(|p| *p < 10_000).min())
         .map(|port| ForeignAdb { port, devices: count_devices(port) })
         .collect()
+}
+
+/// Puertos TCP en escucha de cada uno de esos procesos.
+#[cfg(windows)]
+fn listening_ports(pids: &std::collections::HashSet<u32>) -> std::collections::HashMap<u32, Vec<u16>> {
+    let mut by_pid: std::collections::HashMap<u32, Vec<u16>> = std::collections::HashMap::new();
+    let mut netstat = std::process::Command::new("netstat");
+    netstat.args(["-ano", "-p", "TCP"]).stdin(std::process::Stdio::null());
+    hide_window(&mut netstat);
+    let Ok(out) = netstat.output() else { return by_pid };
+    // "TCP  127.0.0.1:5038  0.0.0.0:0  LISTENING  18736"
+    for line in String::from_utf8_lossy(&out.stdout).lines() {
+        let cols: Vec<&str> = line.split_whitespace().collect();
+        let [_, local, _, state, pid] = cols[..] else { continue };
+        let (Ok(pid), Some(port)) = (pid.parse::<u32>(), port_of(local)) else { continue };
+        if state == "LISTENING" && pids.contains(&pid) {
+            by_pid.entry(pid).or_default().push(port);
+        }
+    }
+    by_pid
+}
+
+/// Puertos TCP en escucha de cada uno de esos procesos (macOS y Linux: `lsof`).
+#[cfg(not(windows))]
+fn listening_ports(pids: &std::collections::HashSet<u32>) -> std::collections::HashMap<u32, Vec<u16>> {
+    let lsof = ["/usr/sbin/lsof", "/usr/bin/lsof"]
+        .into_iter()
+        .find(|p| std::path::Path::new(p).exists())
+        .unwrap_or("lsof");
+    let mut cmd = std::process::Command::new(lsof);
+    cmd.args(["-nP", "-iTCP", "-sTCP:LISTEN"]).stdin(std::process::Stdio::null());
+    match cmd.output() {
+        Ok(out) => parse_lsof(&String::from_utf8_lossy(&out.stdout), pids),
+        Err(_) => Default::default(),
+    }
+}
+
+/// Salida de `lsof -nP -iTCP -sTCP:LISTEN`:
+/// `adb  18736 ana  7u  IPv4 0x…  0t0  TCP 127.0.0.1:5038 (LISTEN)`.
+#[cfg_attr(windows, allow(dead_code))]
+fn parse_lsof(out: &str, pids: &std::collections::HashSet<u32>) -> std::collections::HashMap<u32, Vec<u16>> {
+    let mut by_pid: std::collections::HashMap<u32, Vec<u16>> = std::collections::HashMap::new();
+    for line in out.lines() {
+        let cols: Vec<&str> = line.split_whitespace().collect();
+        let Some(pid) = cols.get(1).and_then(|p| p.parse::<u32>().ok()) else { continue };
+        let Some(tcp) = cols.iter().position(|c| *c == "TCP") else { continue };
+        let Some(port) = cols.get(tcp + 1).and_then(|addr| port_of(addr)) else { continue };
+        if pids.contains(&pid) {
+            let ports = by_pid.entry(pid).or_default();
+            // IPv4 e IPv6 aparecen en líneas separadas con el mismo puerto.
+            if !ports.contains(&port) {
+                ports.push(port);
+            }
+        }
+    }
+    by_pid
+}
+
+/// `127.0.0.1:5038`, `[::1]:5038` o `*:5038` -> 5038.
+fn port_of(addr: &str) -> Option<u16> {
+    addr.rsplit(':').next()?.parse().ok()
 }
 
 fn count_devices(port: u16) -> usize {
@@ -165,13 +208,9 @@ pub fn stop_adb_server(port: u16) -> std::result::Result<(), String> {
     cmd.output().map(|_| ()).map_err(|e| e.to_string())
 }
 
-fn local_adb() -> Option<std::path::PathBuf> {
-    let dir = std::env::current_exe().ok()?.parent()?.to_path_buf();
-    Some(dir.join("platform-tools").join(if cfg!(windows) { "adb.exe" } else { "adb" }))
-}
-
-/// Si no hay adb usable, descarga las platform-tools oficiales de Google junto a la app (no se
-/// redistribuyen en el instalador). Usa `curl` y `tar`, que vienen con Windows 10/11.
+/// Si no hay adb usable, descarga las platform-tools oficiales de Google (no se redistribuyen
+/// en el instalador) a la carpeta de herramientas de la app. Usa `curl` y un descompresor que
+/// ya viene con el sistema (`tar` en Windows 10/11, `unzip` en macOS y Linux).
 pub fn ensure_adb() -> std::result::Result<(), String> {
     let mut probe = std::process::Command::new(adb_exe());
     probe.arg("version").stdin(std::process::Stdio::null());
@@ -179,12 +218,19 @@ pub fn ensure_adb() -> std::result::Result<(), String> {
     if probe.output().is_ok_and(|o| o.status.success()) {
         return Ok(());
     }
-    let dest = local_adb()
-        .and_then(|p| p.parent()?.parent().map(|d| d.to_path_buf()))
-        .ok_or("no se encontró la carpeta de la app")?;
+    let dest = crate::platform::tools_dir().ok_or("no se encontró la carpeta de la app")?;
+    std::fs::create_dir_all(&dest).map_err(|e| format!("no se pudo crear {}: {e}", dest.display()))?;
     let zip = std::env::temp_dir().join("aguara-platform-tools.zip");
-    let url = "https://dl.google.com/android/repository/platform-tools-latest-windows.zip";
+    let system = if cfg!(windows) {
+        "windows"
+    } else if cfg!(target_os = "macos") {
+        "darwin"
+    } else {
+        "linux"
+    };
+    let url = format!("https://dl.google.com/android/repository/platform-tools-latest-{system}.zip");
     let run = |mut cmd: std::process::Command| -> std::result::Result<(), String> {
+        cmd.stdin(std::process::Stdio::null());
         hide_window(&mut cmd);
         let out = cmd.output().map_err(|e| e.to_string())?;
         if out.status.success() {
@@ -194,11 +240,54 @@ pub fn ensure_adb() -> std::result::Result<(), String> {
         }
     };
     let mut curl = std::process::Command::new("curl");
-    curl.args(["-sSfL", "-o"]).arg(&zip).arg(url);
+    curl.args(["-sSfL", "-o"]).arg(&zip).arg(&url);
     run(curl).map_err(|e| format!("no se pudo descargar adb: {e}"))?;
-    let mut tar = std::process::Command::new("tar");
-    tar.arg("-xf").arg(&zip).arg("-C").arg(&dest);
-    let r = run(tar).map_err(|e| format!("no se pudo descomprimir adb: {e}"));
+    let unpack = if cfg!(windows) {
+        let mut tar = std::process::Command::new("tar");
+        tar.arg("-xf").arg(&zip).arg("-C").arg(&dest);
+        tar
+    } else {
+        let mut unzip = std::process::Command::new("unzip");
+        unzip.arg("-oq").arg(&zip).arg("-d").arg(&dest);
+        unzip
+    };
+    let r = run(unpack).map_err(|e| format!("no se pudo descomprimir adb: {e}"));
     let _ = std::fs::remove_file(&zip);
-    r
+    r?;
+    let adb = dest.join("platform-tools").join(crate::platform::exe_name("adb"));
+    if !adb.is_file() {
+        return Err(format!("adb no quedó en {}", adb.display()));
+    }
+    crate::platform::make_executable(&adb);
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{parse_lsof, port_of};
+
+    #[test]
+    fn reads_ports_from_addresses() {
+        assert_eq!(port_of("127.0.0.1:5038"), Some(5038));
+        assert_eq!(port_of("[::1]:5037"), Some(5037));
+        assert_eq!(port_of("*:7000"), Some(7000));
+        assert_eq!(port_of("0.0.0.0:0"), Some(0));
+        assert_eq!(port_of("NAME"), None);
+    }
+
+    #[test]
+    fn parses_lsof_listeners_of_the_given_pids() {
+        let out = "COMMAND   PID USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
+adb     18736  ana    7u  IPv4 0x8a1f3c2d1e0b7a11      0t0  TCP 127.0.0.1:5038 (LISTEN)
+adb     18736  ana    8u  IPv6 0x8a1f3c2d1e0b7a12      0t0  TCP [::1]:5038 (LISTEN)
+adb     18736  ana   12u  IPv4 0x8a1f3c2d1e0b7a13      0t0  TCP 127.0.0.1:27183 (LISTEN)
+adb       912  ana    7u  IPv4 0x8a1f3c2d1e0b7a14      0t0  TCP 127.0.0.1:5037 (LISTEN)
+rapportd  544  ana    4u  IPv4 0x8a1f3c2d1e0b7a15      0t0  TCP *:49152 (LISTEN)
+";
+        let pids = [18736u32, 912].into_iter().collect();
+        let by_pid = parse_lsof(out, &pids);
+        assert_eq!(by_pid.get(&18736), Some(&vec![5038, 27183]));
+        assert_eq!(by_pid.get(&912), Some(&vec![5037]));
+        assert_eq!(by_pid.len(), 2);
+    }
 }

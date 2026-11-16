@@ -1,6 +1,6 @@
 # Aguará
 
-App de escritorio para ver y manejar desde la PC varios teléfonos Android conectados por USB.
+App de escritorio (Windows y macOS) para ver y manejar desde la computadora varios teléfonos Android conectados por USB.
 Hecha con Tauri v2 + Rust y una UI en TypeScript. Usa el
 [scrcpy-server](https://github.com/Genymobile/scrcpy) oficial (Apache-2.0): sin root y sin
 instalar nada en el teléfono.
@@ -25,12 +25,16 @@ La guía de uso para quien instala la app está en [`LEEME-Aguara.txt`](LEEME-Ag
 
 1. **Rust** stable — https://rustup.rs
 2. **Node.js ≥ 18** y npm.
-3. Windows 10/11 con WebView2 (viene con Windows 11).
+3. **Windows** 10/11 con WebView2 (viene con Windows 11), o **macOS** 11 o posterior (Intel o
+   Apple Silicon) con las Xcode Command Line Tools (`xcode-select --install`).
 4. Los binarios de `src-tauri/vendor/` (no están en git; ver
-   [`src-tauri/vendor/README.md`](src-tauri/vendor/README.md)).
+   [`src-tauri/vendor/README.md`](src-tauri/vendor/README.md)). En macOS alcanza con
+   `scrcpy-server.jar`.
 
 `adb` no hace falta: si no hay uno funcionando, la app descarga las platform-tools oficiales
-de Google la primera vez.
+de Google la primera vez. En macOS pasa lo mismo con `ffmpeg` (o se usa el de Homebrew, si
+está: `brew install ffmpeg`); lo que se descarga queda en
+`~/Library/Application Support/Aguara`.
 
 ## Desarrollo
 
@@ -48,7 +52,18 @@ Solo la UI, con teléfonos simulados (sin Tauri): `npm run dev` y abrir
 npm run tauri build -- --features custom-protocol
 ```
 
-Genera `src-tauri/target/release/bundle/nsis/Aguará_<versión>_x64-setup.exe`.
+- Windows: genera `src-tauri/target/release/bundle/nsis/Aguará_<versión>_x64-setup.exe`.
+- macOS: genera `src-tauri/target/release/bundle/dmg/Aguará_<versión>_<arch>.dmg` y
+  `bundle/macos/Aguará.app`. Para un `.dmg` que sirva en Intel y Apple Silicon:
+  `rustup target add x86_64-apple-darwin aarch64-apple-darwin` y agregar
+  `--target universal-apple-darwin`.
+
+Lo específico de cada sistema (qué se empaqueta y en qué formato) está en
+`src-tauri/tauri.windows.conf.json` y `src-tauri/tauri.macos.conf.json`; Tauri los combina solo
+con `tauri.conf.json`.
+
+La app para macOS sale sin firma de Apple: en otra Mac, la primera vez hay que abrirla con
+clic derecho > Abrir (ver `LEEME-Aguara.txt`).
 
 ## Tests
 
@@ -67,6 +82,7 @@ src-tauri/
     transport/      adb, arranque de scrcpy-server, conexiones
     media/          decodificación de video (ffmpeg)
     app/            sesiones por teléfono
+    platform.rs     lo que cambia entre Windows, macOS y Linux (rutas, portapapeles…)
     commands.rs     comandos que llama la UI
   vendor/           scrcpy-server y ffmpeg (no versionados)
   icons/            ícono del zorro

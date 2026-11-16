@@ -136,102 +136,161 @@ fn pump_packets<R: Read, W: Write>(mut source: R, mut out: W, suffix: &[u8]) -> 
     }
 }
 
-/// Reproduce en la PC el audio crudo de scrcpy (PCM s16le, 48 kHz, estéreo) con ffplay, sin
-/// ventana. Devuelve el proceso: matarlo corta el audio. El socket se bombea en su hilo.
+/// Ejecutable de ffmpeg: el que viene con la app, el que la app descargó o el del sistema.
+pub fn ffmpeg_exe() -> std::path::PathBuf {
+    crate::platform::tool_or_path("ffmpeg")
+}
+
+/// Si no hay ffmpeg usable, lo descarga a la carpeta de herramientas de la app.
+pub fn ensure_ffmpeg() -> Result<(), String> {
+    if crate::platform::tool_available("ffmpeg") {
+        return Ok(());
+    }
+    let dest = crate::platform::tools_dir().ok_or("no se encontró la carpeta de la app")?;
+    std::fs::create_dir_all(&dest).map_err(|e| format!("no se pudo crear {}: {e}", dest.display()))?;
+    let url = ffmpeg_sidecar::download::ffmpeg_download_url().map_err(|e| e.to_string())?;
+    let archive = ffmpeg_sidecar::download::download_ffmpeg_package(url, &dest).map_err(|e| format!("{e:#}"))?;
+    ffmpeg_sidecar::download::unpack_ffmpeg(&archive, &dest).map_err(|e| format!("{e:#}"))?;
+    for tool in ["ffmpeg", "ffplay"] {
+        crate::platform::make_executable(&dest.join(crate::platform::exe_name(tool)));
+    }
+    Ok(())
+}
+
+/// Entrada de audio crudo de scrcpy para ffmpeg/ffplay: PCM s16le, 48 kHz, estéreo.
+const RAW_AUDIO_INPUT: [&str; 14] = [
+    "-fflags", "nobuffer", "-flags", "low_delay",
+    "-probesize", "32", "-analyzeduration", "0",
+    "-f", "s16le", "-ar", "48000", "-ch_layout", "stereo",
+];
+
+/// Reproduce en la computadora el audio crudo de scrcpy, sin ventana. Devuelve el proceso:
+/// matarlo corta el audio. El socket se bombea en su hilo.
+///
+/// Con ffplay si está (viene en el instalador de Windows). En macOS las descargas de FFmpeg no
+/// traen ffplay: ahí ffmpeg mismo manda el audio a la salida del sistema (AudioToolbox).
 pub fn play_raw_audio<R: Read + Send + 'static>(source: R) -> std::io::Result<std::process::Child> {
-    let ffplay = ffmpeg_sidecar::paths::ffmpeg_path().with_file_name(if cfg!(windows) { "ffplay.exe" } else { "ffplay" });
-    let mut cmd = Command::new(ffplay);
-    cmd.args([
-        "-hide_banner", "-loglevel", "error", "-nodisp", "-autoexit",
-        "-fflags", "nobuffer", "-flags", "low_delay",
-        "-probesize", "32", "-analyzeduration", "0",
-        "-f", "s16le", "-ar", "48000", "-ch_layout", "stereo", "-i", "pipe:0",
-    ])
-    .stdin(Stdio::piped())
-    .stdout(Stdio::null())
-    .stderr(Stdio::null());
+    let mut cmd = match crate::platform::find_tool("ffplay") {
+        Some(ffplay) => {
+            let mut cmd = Command::new(ffplay);
+            cmd.args(["-hide_banner", "-loglevel", "error", "-nodisp", "-autoexit"])
+                .args(RAW_AUDIO_INPUT)
+                .args(["-i", "pipe:0"]);
+            cmd
+        }
+        None if cfg!(target_os = "macos") => {
+            let mut cmd = Command::new(ffmpeg_exe());
+            cmd.args(["-hide_banner", "-loglevel", "error"])
+                .args(RAW_AUDIO_INPUT)
+                .args(["-i", "pipe:0", "-f", "audiotoolbox", "-"]);
+            cmd
+        }
+        None => {
+            // Sin ruta conocida: probar el ffplay del PATH.
+            let mut cmd = Command::new(crate::platform::exe_name("ffplay"));
+            cmd.args(["-hide_banner", "-loglevel", "error", "-nodisp", "-autoexit"])
+                .args(RAW_AUDIO_INPUT)
+                .args(["-i", "pipe:0"]);
+            cmd
+        }
+    };
+    cmd.stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null());
     crate::transport::hide_window(&mut cmd);
-    let mut child = cmd.spawn()?;
-    let stdin = child.stdin.take().expect("ffplay stdin");
+    let mut child = cmd.spawn().map_err(|e| {
+        std::io::Error::new(e.kind(), format!("no se pudo abrir el reproductor de audio (ffplay/ffmpeg): {e}"))
+    })?;
+    let stdin = child.stdin.take().expect("stdin del reproductor");
     std::thread::spawn(move || {
         let _ = pump_packets(source, stdin, &[]);
     });
     Ok(child)
 }
 
-/// Lee paquetes H.264 de scrcpy desde `source` y entrega cada frame como JPEG a `on_frame`
-/// hasta EOF.
-///
-/// `quality` es la escala `-q:v` de mjpeg (2 = mejor, 31 = peor). Bloquea; correr en su hilo.
-pub fn decode_h264_to_jpeg<R, F>(source: R, quality: u8, mut on_frame: F) -> std::io::Result<()>
-where
-    R: Read + Send + 'static,
-    F: FnMut(Frame),
-{
-    let q = quality.clamp(2, 31).to_string();
-    let mut cmd = Command::new(ffmpeg_sidecar::paths::ffmpeg_path());
-    cmd.args([
-        "-hide_banner", "-loglevel", "error",
-        // Entrada: sin análisis largo del stream y decode en un hilo (el decode multihilo
-        // retiene tantos frames como hilos antes de entregar el primero).
-        "-threads", "1", "-flags", "low_delay",
-        "-probesize", "32", "-analyzeduration", "0",
-        "-f", "h264", "-i", "pipe:0",
-        // Salida: un JPEG por frame recibido, sin rellenar/duplicar por framerate.
-        "-fps_mode", "passthrough",
-        // MJPEG exige rango completo; muchos teléfonos marcan el video como rango limitado.
-        "-pix_fmt", "yuvj420p",
-        "-threads", "1",
-        "-f", "image2pipe", "-c:v", "mjpeg", "-q:v", &q,
-        "-flush_packets", "1", "pipe:1",
-    ])
-    .stdin(Stdio::piped())
-    .stdout(Stdio::piped())
-    .stderr(Stdio::null());
-    crate::transport::hide_window(&mut cmd);
-    let mut child = cmd.spawn()?;
+/// ffmpeg ya arrancado, convirtiendo el H.264 de un teléfono a JPEG.
+pub struct Decoder {
+    child: std::process::Child,
+}
 
-    // Alimentar ffmpeg desde el socket, en un hilo aparte.
-    let stdin = child.stdin.take().expect("ffmpeg stdin");
-    std::thread::spawn(move || {
-        let _ = pump_scrcpy_packets(source, stdin);
-    });
+impl Decoder {
+    /// Arranca ffmpeg y empieza a alimentarlo con los paquetes H.264 de scrcpy que llegan por
+    /// `source` (en un hilo aparte). Falla enseguida si ffmpeg no está o no se puede ejecutar.
+    ///
+    /// `quality` es la escala `-q:v` de mjpeg (2 = mejor, 31 = peor).
+    pub fn spawn<R: Read + Send + 'static>(source: R, quality: u8) -> std::io::Result<Self> {
+        let q = quality.clamp(2, 31).to_string();
+        let mut cmd = Command::new(ffmpeg_exe());
+        cmd.args([
+            "-hide_banner", "-loglevel", "error",
+            // Entrada: sin análisis largo del stream y decode en un hilo (el decode multihilo
+            // retiene tantos frames como hilos antes de entregar el primero).
+            "-threads", "1", "-flags", "low_delay",
+            "-probesize", "32", "-analyzeduration", "0",
+            "-f", "h264", "-i", "pipe:0",
+            // Salida: un JPEG por frame recibido, sin rellenar/duplicar por framerate.
+            "-fps_mode", "passthrough",
+            // MJPEG exige rango completo; muchos teléfonos marcan el video como rango limitado.
+            "-pix_fmt", "yuvj420p",
+            "-threads", "1",
+            "-f", "image2pipe", "-c:v", "mjpeg", "-q:v", &q,
+            "-flush_packets", "1", "pipe:1",
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
+        crate::transport::hide_window(&mut cmd);
+        let mut child = cmd.spawn()?;
 
-    let mut stdout = child.stdout.take().expect("ffmpeg stdout");
-    let mut buf: Vec<u8> = Vec::with_capacity(512 * 1024);
-    let mut chunk = vec![0u8; 64 * 1024];
-    loop {
-        let n = match stdout.read(&mut chunk) {
-            Ok(0) | Err(_) => break,
-            Ok(n) => n,
-        };
-        buf.extend_from_slice(&chunk[..n]);
-        // Extraer todos los JPEG completos del buffer.
+        // Alimentar ffmpeg desde el socket, en un hilo aparte.
+        let stdin = child.stdin.take().expect("ffmpeg stdin");
+        std::thread::spawn(move || {
+            let _ = pump_scrcpy_packets(source, stdin);
+        });
+        Ok(Self { child })
+    }
+
+    /// Entrega cada frame como JPEG a `on_frame` hasta que el stream termina. Bloquea; correr
+    /// en su hilo.
+    pub fn run<F: FnMut(Frame)>(mut self, mut on_frame: F) {
+        let Some(mut stdout) = self.child.stdout.take() else { return };
+        let mut buf: Vec<u8> = Vec::with_capacity(512 * 1024);
+        let mut chunk = vec![0u8; 64 * 1024];
         loop {
-            // Re-sincronizar al próximo SOI (FF D8) si hay basura delante.
-            match buf.windows(2).position(|w| w == [0xFF, 0xD8]) {
-                Some(0) => {}
-                Some(p) => {
-                    buf.drain(..p);
+            let n = match stdout.read(&mut chunk) {
+                Ok(0) | Err(_) => break,
+                Ok(n) => n,
+            };
+            buf.extend_from_slice(&chunk[..n]);
+            // Extraer todos los JPEG completos del buffer.
+            loop {
+                // Re-sincronizar al próximo SOI (FF D8) si hay basura delante.
+                match buf.windows(2).position(|w| w == [0xFF, 0xD8]) {
+                    Some(0) => {}
+                    Some(p) => {
+                        buf.drain(..p);
+                    }
+                    None => {
+                        let keep = usize::from(buf.last() == Some(&0xFF));
+                        buf.drain(..buf.len() - keep);
+                        break;
+                    }
                 }
-                None => {
-                    let keep = usize::from(buf.last() == Some(&0xFF));
-                    buf.drain(..buf.len() - keep);
-                    break;
+                match scan_jpeg(&buf) {
+                    Some((len, w, h)) => {
+                        let jpeg: Vec<u8> = buf.drain(..len).collect();
+                        on_frame(Frame { width: w, height: h, jpeg });
+                    }
+                    None => break, // incompleto: esperar más datos
                 }
-            }
-            match scan_jpeg(&buf) {
-                Some((len, w, h)) => {
-                    let jpeg: Vec<u8> = buf.drain(..len).collect();
-                    on_frame(Frame { width: w, height: h, jpeg });
-                }
-                None => break, // incompleto: esperar más datos
             }
         }
     }
-    let _ = child.kill();
-    let _ = child.wait();
-    Ok(())
+}
+
+impl Drop for Decoder {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
 }
 
 /// Si `buf` empieza con un JPEG completo, devuelve (longitud, ancho, alto).

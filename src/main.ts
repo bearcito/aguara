@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getVersion } from "@tauri-apps/api/app";
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
-import { t, applyI18n, setLang, getLang, LANGUAGES, LANGUAGE_NAMES } from "./i18n";
+import { t, applyI18n, setLang, getLang, IS_MAC, LANGUAGES, LANGUAGE_NAMES } from "./i18n";
 
 interface DeviceInfo {
   serial: string;
@@ -364,7 +364,8 @@ function ensureTile(d: DeviceInfo): Tile {
   canvas.addEventListener(
     "wheel",
     (e) => {
-      if (e.ctrlKey) return; // Ctrl + rueda cambia el tamaño de las pantallas (lo maneja la grilla)
+      // Ctrl/⌘ + rueda cambia el tamaño de las pantallas (lo maneja la grilla).
+      if (e.ctrlKey || e.metaKey) return;
       e.preventDefault();
       const { rx, ry } = ratio(tile, e);
       const h = Math.max(-1, Math.min(1, -e.deltaX / 120));
@@ -525,12 +526,27 @@ function setTileWidth(w: number) {
   $<HTMLInputElement>("tile-width").value = String(settings.tileWidth);
   saveSettings();
 }
+// Un mouse manda un evento grande por muesca; un trackpad (o el gesto de pellizcar, que llega
+// como Ctrl + rueda) manda muchos chiquitos: se juntan hasta completar un paso, así el tamaño no
+// salta de punta a punta con un solo gesto.
+let zoomAcc = 0;
 grid.addEventListener(
   "wheel",
   (e) => {
-    if (!e.ctrlKey) return;
+    if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
-    setTileWidth(settings.tileWidth + (e.deltaY < 0 ? 20 : -20));
+    if (layoutPrefs.cols > 0) return; // con columnas fijas el tamaño lo da la ventana
+    const delta = e.deltaMode === 0 ? e.deltaY : e.deltaY * 40;
+    if (Math.abs(delta) >= 50) {
+      zoomAcc = 0;
+      setTileWidth(settings.tileWidth + (delta < 0 ? 20 : -20));
+      return;
+    }
+    zoomAcc += delta;
+    if (Math.abs(zoomAcc) >= 12) {
+      setTileWidth(settings.tileWidth + (zoomAcc < 0 ? 20 : -20));
+      zoomAcc = 0;
+    }
   },
   { passive: false },
 );
@@ -1588,7 +1604,12 @@ async function startOne(serial: string) {
   }
 }
 
+/** "Detener" pausa el arranque automático hasta que se pida ver los teléfonos de nuevo; si no,
+ *  el sondeo los volvería a conectar a los 3 segundos. */
+let streamsPaused = false;
+
 async function startAll() {
+  streamsPaused = false;
   await refresh();
   await Promise.allSettled(
     [...tiles.values()].filter((x) => x.adbState === "device").map((x) => startOne(x.serial)),
@@ -1596,10 +1617,13 @@ async function startAll() {
 }
 
 async function stopAll() {
-  for (const serial of await invoke<string[]>("list_active")) {
-    await invoke("stop_mirror", { serial });
+  streamsPaused = true;
+  const active = await invoke<string[]>("list_active").catch(() => [] as string[]);
+  await Promise.allSettled(active.map((serial) => invoke("stop_mirror", { serial })));
+  for (const tile of tiles.values()) {
+    // Los que no están autorizados o están sin conexión conservan su aviso.
+    if (tile.adbState === "device") setTileState(tile, "idle", t("tile.idle"));
   }
-  for (const tile of tiles.values()) setTileState(tile, "idle", t("tile.idle"));
   $<HTMLSpanElement>("status").textContent = t("status.stopped");
 }
 
@@ -1648,7 +1672,7 @@ async function refresh(): Promise<DeviceInfo[]> {
 /** Sondeo: detecta teléfonos nuevos y, con autoarranque, inicia o reintenta su video. */
 async function poll() {
   await refresh();
-  if (!settings.autoStart) return;
+  if (!settings.autoStart || streamsPaused) return;
   const now = Date.now();
   for (const tile of tiles.values()) {
     if (tile.adbState !== "device") continue;
@@ -1688,6 +1712,18 @@ async function pastePcClipboard(serials: string[]) {
   }
 }
 
+/** La tecla es un atajo (Ctrl+C, ⌘Q, Alt+F4…) y no texto para el teléfono.
+ *  AltGr (que Windows informa como Ctrl+Alt) y Option en Mac NO son atajos: con ellas se
+ *  escriben @, #, {, ~ y otros símbolos en los teclados en español. */
+function isShortcut(e: KeyboardEvent): boolean {
+  if (e.metaKey) return true;
+  if (!e.ctrlKey && !e.altKey) return false;
+  const printable = e.key.length === 1;
+  if (IS_MAC) return e.ctrlKey || !printable;
+  const altGr = e.getModifierState("AltGraph") || (e.ctrlKey && e.altKey);
+  return !(altGr && printable);
+}
+
 window.addEventListener("keydown", (e) => {
   if (panicOpen()) {
     if (e.key === "Escape") closePanic();
@@ -1720,7 +1756,7 @@ window.addEventListener("keydown", (e) => {
     }, 120);
     return;
   }
-  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.isComposing || isShortcut(e)) return;
   const key = (code: number) => {
     e.preventDefault();
     for (const s of targets) void keyTo(s, code);
@@ -2323,16 +2359,21 @@ const LAYOUT_DEFAULT: LayoutPrefs = {
   labels: true,
   items: AB_ITEMS.map((id) => ({ id, on: true })),
 };
+/** Copia profunda (sin `structuredClone`, que falta en el WebKit de macOS 11 y 12 sin actualizar). */
+const cloneLayout = (l: LayoutPrefs): LayoutPrefs => JSON.parse(JSON.stringify(l));
 function loadLayout(): LayoutPrefs {
   try {
-    const l = { ...LAYOUT_DEFAULT, ...JSON.parse(localStorage.getItem("aguara.layout") ?? "{}") } as LayoutPrefs;
+    // Sobre una COPIA del original: si se compartieran sus botones, tildarlos lo modificaría y
+    // "Volver al diseño original" ya no volvería a nada.
+    const l = { ...cloneLayout(LAYOUT_DEFAULT), ...JSON.parse(localStorage.getItem("aguara.layout") ?? "{}") } as LayoutPrefs;
+    if (!Array.isArray(l.items)) l.items = [];
     // Botones nuevos que no estaban guardados se agregan al final; los desconocidos se descartan.
     const known = l.items.filter((i) => AB_ITEMS.includes(i.id));
     for (const id of AB_ITEMS) if (!known.some((i) => i.id === id)) known.push({ id, on: true });
     l.items = known;
     return l;
   } catch {
-    return structuredClone(LAYOUT_DEFAULT);
+    return cloneLayout(LAYOUT_DEFAULT);
   }
 }
 let layoutPrefs = loadLayout();
@@ -2451,7 +2492,11 @@ function commitLayout() {
     if (!pop.hidden && !pop.contains(e.target as Node) && !btn.contains(e.target as Node)) setOpen(false);
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !pop.hidden) setOpen(false);
+    if (e.key === "Escape" && !pop.hidden) {
+      // Que el Escape no llegue además al teléfono como "Atrás".
+      e.stopPropagation();
+      setOpen(false);
+    }
   });
   for (const b of document.querySelectorAll<HTMLButtonElement>("#lp-gap .seg-btn"))
     b.addEventListener("click", () => {
@@ -2472,7 +2517,7 @@ function commitLayout() {
     saveSettings();
   });
   $("lp-reset").addEventListener("click", () => {
-    layoutPrefs = structuredClone(LAYOUT_DEFAULT);
+    layoutPrefs = cloneLayout(LAYOUT_DEFAULT);
     commitLayout();
   });
   applyLayout();

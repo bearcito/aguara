@@ -1,18 +1,29 @@
 AGUARÁ 0.1.10 · versión de prueba
 =================================
 
-Aguará muestra y maneja desde la PC varios teléfonos Android conectados por USB.
+Aguará muestra y maneja desde la PC o la Mac varios teléfonos Android conectados por USB.
 
 
 1. INSTALAR
 -----------
-1. Abrí "Aguará_0.1.9_x64-setup.exe".
+En Windows
+1. Abrí "Aguará_0.1.10_x64-setup.exe".
    Si aparece "Windows protegió su PC", tocá "Más información" y después
    "Ejecutar de todas formas". El aviso sale porque el instalador no está firmado.
 2. No pide permisos de administrador. Queda en el menú Inicio como "Aguará".
 3. La primera vez que la abras necesita internet un minuto para descargar adb,
    la herramienta oficial de Google para comunicarse con los teléfonos.
    Si al principio no aparece ninguno, esperá y tocá "Buscar".
+
+En Mac (macOS 11 o posterior)
+1. Abrí "Aguará_0.1.10_….dmg" y arrastrá Aguará a la carpeta Aplicaciones.
+2. La primera vez abrila con clic derecho > "Abrir" y confirmá. El aviso sale porque la app no
+   está firmada por Apple. Si dice que "está dañada", abrí la Terminal y pegá:
+       xattr -cr /Applications/Aguará.app
+3. La primera vez necesita internet un minuto para descargar adb y ffmpeg (el programa que
+   muestra el video). Si al principio no aparece ningún teléfono, esperá y tocá "Buscar".
+4. En Mac los atajos usan la tecla ⌘ en vez de Ctrl (⌘V para pegar, ⌘ + rueda para el tamaño)
+   y las capturas se guardan en Imágenes/Aguará. No hace falta instalar drivers.
 
 
 2. PREPARAR CADA TELÉFONO (una sola vez)
@@ -30,7 +41,8 @@ Además, en Xiaomi/Redmi:
   los toques no llegan.
 
 Además, en Samsung:
-- Instalá en la PC el "Samsung Android USB Driver" (sitio de Samsung para desarrolladores).
+- En Windows, instalá el "Samsung Android USB Driver" (sitio de Samsung para desarrolladores).
+  En Mac no hace falta.
 - Desactivá Ajustes > Seguridad y privacidad > "Bloqueador automático". Si está activo,
   bloquea la depuración USB.
 

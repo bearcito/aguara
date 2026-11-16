@@ -152,6 +152,18 @@ impl SessionManager {
             }
         };
 
+        // ffmpeg arranca acá, no dentro del hilo: si falta (por ejemplo, todavía se está
+        // descargando) el error llega a la UI en vez de dejar una sesión muda.
+        let decoder = match media::Decoder::spawn(conn.video, params.jpeg_quality) {
+            Ok(d) => d,
+            Err(e) => {
+                let _ = self.adb.reverse_remove(serial, &socket_name);
+                return Err(TransportError::Handshake(format!(
+                    "no se pudo abrir ffmpeg ({e}); si es la primera vez, se está descargando: esperá un minuto"
+                )));
+            }
+        };
+
         let running = Arc::new(AtomicBool::new(true));
         // El server manda por el socket de control los cambios del portapapeles del teléfono;
         // leerlos y descartarlos para que su buffer nunca se llene.
@@ -163,35 +175,38 @@ impl SessionManager {
         let control = conn.control.map(|s| Arc::new(Mutex::new(s)));
         let last_frame: LastFrame = Arc::new(Mutex::new(None));
 
-        {
-            let sink = self.sink.clone();
-            let end = self.end_sink.clone();
-            let flag = running.clone();
-            let last = last_frame.clone();
-            let serial_owned = serial.to_string();
-            let video = conn.video;
-            let quality = params.jpeg_quality;
-            std::thread::spawn(move || {
-                let _ = media::decode_h264_to_jpeg(video, quality, |frame| {
-                    if !flag.load(Ordering::Relaxed) {
-                        return;
-                    }
-                    if let Ok(mut slot) = last.lock() {
-                        *slot = Some(frame.jpeg.clone());
-                    }
-                    sink(&serial_owned, frame);
-                });
-                // Si el stream terminó sin que lo detuviéramos nosotros, fue una desconexión.
-                if flag.load(Ordering::Relaxed) {
-                    end(&serial_owned);
-                }
-            });
-        }
-
+        // La sesión se registra ANTES de lanzar el hilo de video: si el stream termina enseguida,
+        // el aviso de fin encuentra la sesión y la limpia (si no, quedaría una sesión fantasma
+        // que impide volver a conectar ese teléfono).
         self.sessions.lock().unwrap().insert(
             serial.to_string(),
-            Session { _server: server, running, scid: opts.scid, control, last_frame },
+            Session {
+                _server: server,
+                running: running.clone(),
+                scid: opts.scid,
+                control,
+                last_frame: last_frame.clone(),
+            },
         );
+
+        let sink = self.sink.clone();
+        let end = self.end_sink.clone();
+        let serial_owned = serial.to_string();
+        std::thread::spawn(move || {
+            decoder.run(|frame| {
+                if !running.load(Ordering::Relaxed) {
+                    return;
+                }
+                if let Ok(mut slot) = last_frame.lock() {
+                    *slot = Some(frame.jpeg.clone());
+                }
+                sink(&serial_owned, frame);
+            });
+            // Si el stream terminó sin que lo detuviéramos nosotros, fue una desconexión.
+            if running.load(Ordering::Relaxed) {
+                end(&serial_owned);
+            }
+        });
         Ok(())
     }
 

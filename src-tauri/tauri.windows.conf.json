@@ -1,0 +1,11 @@
+{
+  "bundle": {
+    "targets": [
+      "nsis"
+    ],
+    "resources": {
+      "vendor/ffmpeg/ffmpeg.exe": "ffmpeg.exe",
+      "vendor/ffmpeg/ffplay.exe": "ffplay.exe"
+    }
+  }
+}

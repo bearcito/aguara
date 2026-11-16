@@ -5,6 +5,7 @@ mod app;
 mod commands;
 mod domain;
 mod media;
+mod platform;
 mod transport;
 
 use commands::{
@@ -19,13 +20,12 @@ use tauri::Manager;
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-            // ffmpeg viene en el instalador; adb se descarga la primera vez si falta. En segundo
+            // ffmpeg viene en el instalador de Windows; en macOS y Linux se usa el del sistema o
+            // se descarga la primera vez. adb se descarga la primera vez si falta. En segundo
             // plano para que la ventana abra enseguida.
             std::thread::spawn(|| {
-                if !ffmpeg_sidecar::paths::ffmpeg_path().exists() {
-                    if let Err(e) = ffmpeg_sidecar::download::auto_download() {
-                        eprintln!("aviso: no se pudo preparar ffmpeg automáticamente: {e}");
-                    }
+                if let Err(e) = media::ensure_ffmpeg() {
+                    eprintln!("aviso: no se pudo preparar ffmpeg automáticamente: {e}");
                 }
                 if let Err(e) = transport::ensure_adb() {
                     eprintln!("aviso: {e}");
