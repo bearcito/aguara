@@ -437,7 +437,7 @@ input[type="range"] { accent-color: var(--accent); width: 100%; cursor: pointer;
   border-radius: 3px;
   pointer-events: none;
 }
-.grid.marquee-active { user-select: none; cursor: crosshair; }
+.grid.marquee-active { -webkit-user-select: none; user-select: none; cursor: crosshair; }
 .sel-hint { margin-left: 4px; }
 
 /* ---------- Ficha del teléfono (panel deslizable) ---------- */
@@ -777,6 +777,7 @@ input[type="range"] { accent-color: var(--accent); width: 100%; cursor: pointer;
   display: flex;
   flex-direction: column;
   background: rgba(8, 6, 5, 0.86);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   opacity: 0;
   visibility: hidden;

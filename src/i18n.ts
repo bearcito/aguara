@@ -163,6 +163,16 @@ const es: Dict = {
   "key.back": "Atrás",
   "key.menu": "Menú de opciones del teléfono",
   "key.text": "Moverse por el texto",
+  "keys.back": "Clic derecho en la pantalla · F12 · Esc",
+  "keys.menu": "Clic derecho en la barra",
+  "keys.text": "Flechas · Inicio · Fin · Supr",
+  "keys.paste": "Ctrl+V",
+  "keys.size": "Ctrl + rueda · Ctrl + / −",
+  "keys.large": "Doble clic en la barra",
+  "keys.order": "Arrastrar la barra",
+  "keys.select": "Arrastrar en un hueco · Ctrl+clic",
+  "send.apkPh": "C:\\ruta\\app.apk",
+  "send.filePh": "C:\\ruta\\archivo.jpg",
   "key.paste": "Pegar lo copiado en la PC",
   "key.size": "Tamaño de las pantallas",
   "key.large": "Ver un teléfono en grande",
@@ -396,6 +406,16 @@ const en: Dict = {
   "key.back": "Back",
   "key.menu": "Phone options menu",
   "key.text": "Move through text",
+  "keys.back": "Right-click on the screen · F12 · Esc",
+  "keys.menu": "Right-click on the bar",
+  "keys.text": "Arrows · Home · End · Del",
+  "keys.paste": "Ctrl+V",
+  "keys.size": "Ctrl + wheel · Ctrl + / −",
+  "keys.large": "Double-click on the bar",
+  "keys.order": "Drag the bar",
+  "keys.select": "Drag from a gap · Ctrl+click",
+  "send.apkPh": "C:\\path\\app.apk",
+  "send.filePh": "C:\\path\\file.jpg",
   "key.paste": "Paste what you copied on the PC",
   "key.size": "Screen size",
   "key.large": "View a phone large",
@@ -484,9 +504,24 @@ export function getLang(): string {
   return lang;
 }
 
+/** La app corre en una Mac (los atajos usan ⌘ y las rutas, "/"). */
+export const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+
+/** Textos escritos para Windows -> Mac: ⌘ en vez de Ctrl, rutas con "/" y "Mac" en vez de "PC". */
+function macText(s: string): string {
+  return s
+    .replace(/C:\\(ruta|path)\\/g, "/Users/yo/Downloads/")
+    .replace(/\\/g, "/")
+    .replace(/Ctrl \+ \/ −/g, "⌘ + · ⌘ −")
+    .replace(/Ctrl\s*\+\s*/g, "⌘ ")
+    .replace(/⌘ V\b/g, "⌘V")
+    .replace(/\bPC\b/g, "Mac");
+}
+
 /** Traduce una clave, con interpolación `{var}`. */
 export function t(key: string, vars: Record<string, string | number> = {}): string {
-  const raw = DICTS[lang][key] ?? DICTS.es[key] ?? key;
+  let raw = DICTS[lang][key] ?? DICTS.es[key] ?? key;
+  if (IS_MAC) raw = macText(raw);
   return raw.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ""));
 }
 

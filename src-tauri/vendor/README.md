@@ -13,7 +13,16 @@ curl -fL -o scrcpy-server.jar \
   https://github.com/Genymobile/scrcpy/releases/download/v5.0.1/scrcpy-server-v5.0.1
 ```
 
-## ffmpeg/ffmpeg.exe y ffmpeg/ffplay.exe
+## ffmpeg/ffmpeg.exe y ffmpeg/ffplay.exe (solo Windows)
 
 Una build de FFmpeg para Windows x64 (por ejemplo, la "essentials" de https://www.gyan.dev/ffmpeg/builds/).
 Copiá `ffmpeg.exe` y `ffplay.exe` de su carpeta `bin/` a `vendor/ffmpeg/`.
+
+## macOS
+
+No hace falta poner ffmpeg acá. La app usa, en este orden: un `ffmpeg` (y `ffplay`) dentro de
+`Aguará.app/Contents/Resources`, el que descargó a `~/Library/Application Support/Aguara`, o el
+de Homebrew / MacPorts. Si no hay ninguno, lo descarga sola la primera vez.
+
+Las descargas de FFmpeg para macOS no traen `ffplay`: sin él, el audio del teléfono se reproduce
+con el mismo `ffmpeg` (salida AudioToolbox).
