@@ -65,6 +65,15 @@ con `tauri.conf.json`.
 La app para macOS sale sin firma de Apple: en otra Mac, la primera vez hay que abrirla con
 clic derecho > Abrir (ver `LEEME-Aguara.txt`).
 
+## Publicar una versión
+
+1. Subir `version` en `src-tauri/tauri.conf.json`.
+2. Escribir las novedades en `.github/release-notes.md`.
+3. En GitHub: Actions > **Release** > Run workflow (sobre `main`).
+
+El workflow compila en máquinas Windows y Mac de GitHub y crea la release `v<versión>` con
+`Aguara_<versión>_x64-setup.exe`, `Aguara_<versión>_macOS.dmg` (Intel y Apple Silicon) y el LEEME.
+
 ## Tests
 
 ```bash

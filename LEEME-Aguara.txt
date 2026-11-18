@@ -7,7 +7,7 @@ Aguará muestra y maneja desde la PC o la Mac varios teléfonos Android conectad
 1. INSTALAR
 -----------
 En Windows
-1. Abrí "Aguará_0.1.10_x64-setup.exe".
+1. Abrí "Aguara_0.1.10_x64-setup.exe".
    Si aparece "Windows protegió su PC", tocá "Más información" y después
    "Ejecutar de todas formas". El aviso sale porque el instalador no está firmado.
 2. No pide permisos de administrador. Queda en el menú Inicio como "Aguará".
@@ -16,9 +16,10 @@ En Windows
    Si al principio no aparece ninguno, esperá y tocá "Buscar".
 
 En Mac (macOS 11 o posterior)
-1. Abrí "Aguará_0.1.10_….dmg" y arrastrá Aguará a la carpeta Aplicaciones.
+1. Abrí "Aguara_0.1.10_macOS.dmg" y arrastrá Aguará a la carpeta Aplicaciones.
 2. La primera vez abrila con clic derecho > "Abrir" y confirmá. El aviso sale porque la app no
-   está firmada por Apple. Si dice que "está dañada", abrí la Terminal y pegá:
+   está firmada por Apple. Si no aparece "Abrir", andá a Ajustes del Sistema > Privacidad y
+   seguridad y tocá "Abrir igualmente". Si dice que "está dañada", abrí la Terminal y pegá:
        xattr -cr /Applications/Aguará.app
 3. La primera vez necesita internet un minuto para descargar adb y ffmpeg (el programa que
    muestra el video). Si al principio no aparece ningún teléfono, esperá y tocá "Buscar".
