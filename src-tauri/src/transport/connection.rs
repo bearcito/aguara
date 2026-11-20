@@ -3,7 +3,7 @@
 //! Con `tunnel_forward=false` el server del dispositivo se conecta al PC, así que el PC
 //! **escucha** en el puerto reverseado. Sin byte "dummy" ni metadatos de dispositivo/códec:
 //! el socket de video trae solo paquetes `[pts+flags: u64][tamaño: u32][H.264]` (ver
-//! `media::decode_h264_to_jpeg`). Orden de conexión: video, [audio], control.
+//! `media::Decoder`). Orden de conexión: video, [audio], control.
 
 use std::net::{TcpListener, TcpStream};
 use std::time::{Duration, Instant};

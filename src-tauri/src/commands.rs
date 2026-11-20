@@ -89,9 +89,21 @@ fn base64_encode(data: &[u8]) -> String {
     out
 }
 
+/// Corre `f` en un hilo aparte. Los comandos que llaman a adb pueden tardar segundos (instalar
+/// un APK, una captura, un adb que está arrancando): en el hilo principal congelarían la ventana
+/// y el video de todos los teléfonos.
+async fn blocking<T, F>(f: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> T + Send + 'static,
+{
+    tauri::async_runtime::spawn_blocking(f).await.map_err(|e| e.to_string())
+}
+
 #[tauri::command]
-pub fn list_devices(state: State<AppState>) -> Result<Vec<DeviceInfo>, String> {
-    state.manager.adb().list_devices().map_err(|e| e.to_string())
+pub async fn list_devices(state: State<'_, AppState>) -> Result<Vec<DeviceInfo>, String> {
+    let manager = state.manager.clone();
+    blocking(move || manager.adb().list_devices().map_err(|e| e.to_string())).await?
 }
 
 /// Arranca el mirroring. Async + hilo bloqueante: la UI no se congela mientras el teléfono
@@ -134,21 +146,25 @@ pub struct MatchResult {
 
 /// Busca una plantilla PNG/JPG en el último frame del dispositivo (automación por imagen).
 #[tauri::command]
-pub fn find_template(
+pub async fn find_template(
     serial: String,
     path: String,
     threshold: Option<f32>,
-    state: State<AppState>,
-) -> Option<MatchResult> {
-    state
-        .manager
-        .find_template(&serial, &path, threshold.unwrap_or(0.8))
-        .map(|(x, y, score)| MatchResult { x, y, score })
+    state: State<'_, AppState>,
+) -> Result<Option<MatchResult>, String> {
+    let manager = state.manager.clone();
+    blocking(move || {
+        manager
+            .find_template(&serial, &crate::platform::user_path(&path), threshold.unwrap_or(0.8))
+            .map(|(x, y, score)| MatchResult { x, y, score })
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn stop_mirror(serial: String, state: State<AppState>) {
-    state.manager.stop(&serial);
+pub async fn stop_mirror(serial: String, state: State<'_, AppState>) -> Result<(), String> {
+    let manager = state.manager.clone();
+    blocking(move || manager.stop(&serial)).await
 }
 
 /// Puntero "dedo genérico" de scrcpy: Android lo recibe como pantalla táctil (deslizar en la
@@ -235,26 +251,42 @@ pub async fn inject_text(
 
 /// Instala un APK local en el dispositivo (reinstala conservando datos).
 #[tauri::command]
-pub fn install_apk(serial: String, path: String, state: State<AppState>) -> Result<(), String> {
-    state.manager.adb().install(&serial, &path).map_err(|e| e.to_string())
+pub async fn install_apk(serial: String, path: String, state: State<'_, AppState>) -> Result<(), String> {
+    let manager = state.manager.clone();
+    blocking(move || {
+        manager.adb().install(&serial, &crate::platform::user_path(&path)).map_err(|e| e.to_string())
+    })
+    .await?
 }
 
 /// Empuja un archivo local al dispositivo.
 #[tauri::command]
-pub fn push_file(
+pub async fn push_file(
     serial: String,
     local: String,
     remote: String,
-    state: State<AppState>,
+    state: State<'_, AppState>,
 ) -> Result<(), String> {
-    state.manager.adb().push(&serial, &local, &remote).map_err(|e| e.to_string())
+    let manager = state.manager.clone();
+    blocking(move || {
+        manager
+            .adb()
+            .push(&serial, &crate::platform::user_path(&local), &remote)
+            .map_err(|e| e.to_string())
+    })
+    .await?
 }
 
 /// Captura la pantalla del dispositivo a un PNG. Rutas relativas van a
 /// `<Imágenes>/Aguará/` (escribible también con la app instalada). Devuelve la ruta final.
 #[tauri::command]
-pub fn screenshot(serial: String, out: String, state: State<AppState>) -> Result<String, String> {
-    let mut path = std::path::PathBuf::from(&out);
+pub async fn screenshot(serial: String, out: String, state: State<'_, AppState>) -> Result<String, String> {
+    let manager = state.manager.clone();
+    blocking(move || take_screenshot(&manager, &serial, &out)).await?
+}
+
+fn take_screenshot(manager: &SessionManager, serial: &str, out: &str) -> Result<String, String> {
+    let mut path = std::path::PathBuf::from(out);
     if path.is_relative() {
         // Rutas relativas (p. ej. "2026-10-29/Telefono_14-05-12.png") van dentro de la carpeta de
         // capturas; sin ".." para no salir de ella.
@@ -267,7 +299,7 @@ pub fn screenshot(serial: String, out: String, state: State<AppState>) -> Result
         std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     }
     let path_str = path.display().to_string();
-    state.manager.adb().screencap(&serial, &path_str).map_err(|e| e.to_string())?;
+    manager.adb().screencap(serial, &path_str).map_err(|e| e.to_string())?;
     Ok(path_str)
 }
 
@@ -404,17 +436,15 @@ pub async fn paste_text(serial: String, text: String, state: State<'_, AppState>
     state.manager.send_control(&serial, msg).map_err(|e| e.to_string())
 }
 
-/// Carpeta de capturas: Imágenes\Aguará.
+/// Carpeta de capturas: `Imágenes/Aguará` (en macOS, `~/Pictures/Aguará`).
 fn shots_dir() -> std::path::PathBuf {
-    std::env::var_os("USERPROFILE")
-        .or_else(|| std::env::var_os("HOME"))
-        .map(std::path::PathBuf::from)
+    crate::platform::home_dir()
         .unwrap_or_else(std::env::temp_dir)
         .join("Pictures")
         .join("Aguará")
 }
 
-/// Abre la carpeta de capturas en el Explorador.
+/// Abre la carpeta de capturas en el explorador de archivos (Explorador, Finder…).
 #[tauri::command]
 pub fn open_shots_dir(day: Option<String>) -> Result<(), String> {
     let mut dir = shots_dir();
@@ -423,23 +453,13 @@ pub fn open_shots_dir(day: Option<String>) -> Result<(), String> {
         dir = dir.join(d);
     }
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    std::process::Command::new("explorer").arg(&dir).spawn().map(|_| ()).map_err(|e| e.to_string())
+    crate::platform::open_folder(&dir).map_err(|e| e.to_string())
 }
 
-/// Texto del portapapeles de la PC (para "Pegar" desde el menú, sin Ctrl+V).
+/// Texto del portapapeles de la computadora (para "Pegar" desde el menú, sin Ctrl+V / ⌘V).
 #[tauri::command]
 pub async fn read_pc_clipboard() -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(|| {
-        let mut cmd = std::process::Command::new("powershell");
-        cmd.args(["-NoProfile", "-NonInteractive", "-Command",
-            "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-Clipboard -Raw"]);
-        crate::transport::hide_window(&mut cmd);
-        let out = cmd.output().map_err(|e| e.to_string())?;
-        let text = String::from_utf8_lossy(&out.stdout);
-        Ok(text.trim_end_matches(['\r', '\n']).to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    blocking(crate::platform::read_clipboard).await?
 }
 
 /// Empieza a escuchar en la PC el audio del teléfono.
@@ -462,8 +482,9 @@ pub async fn stop_audio(serial: String, state: State<'_, AppState>) -> Result<()
 
 /// Serials cuyo audio suena en la PC.
 #[tauri::command]
-pub fn list_audio(state: State<AppState>) -> Vec<String> {
-    state.manager.audio_active()
+pub async fn list_audio(state: State<'_, AppState>) -> Result<Vec<String>, String> {
+    let manager = state.manager.clone();
+    blocking(move || manager.audio_active()).await
 }
 
 /// Cómo abrir el selector de cuentas de una app: mantener apretado o tocar el primer elemento

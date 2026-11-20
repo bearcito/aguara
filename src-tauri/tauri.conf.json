@@ -27,21 +27,18 @@
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "nsis"
-    ],
+    "targets": "all",
     "publisher": "Aguará",
     "category": "Utility",
     "shortDescription": "Control de varios teléfonos Android desde la PC",
     "resources": {
-      "vendor/scrcpy-server.jar": "vendor/scrcpy-server.jar",
-      "vendor/ffmpeg/ffmpeg.exe": "ffmpeg.exe",
-      "vendor/ffmpeg/ffplay.exe": "ffplay.exe"
+      "vendor/scrcpy-server.jar": "vendor/scrcpy-server.jar"
     },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
+      "icons/icon.icns",
       "icons/icon.ico",
       "icons/icon.png"
     ],
