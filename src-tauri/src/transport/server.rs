@@ -26,6 +26,8 @@ pub struct ServerOptions {
     pub control: bool,
     /// Nombre del socket localabstract (scid).
     pub scid: String,
+    /// Codificador de video a usar (None = el que elija el teléfono).
+    pub video_encoder: Option<String>,
 }
 
 impl Default for ServerOptions {
@@ -39,6 +41,7 @@ impl Default for ServerOptions {
             audio: false,
             control: true,
             scid: "0000002a".to_string(),
+            video_encoder: None,
         }
     }
 }
@@ -69,7 +72,7 @@ impl ScrcpyServer {
              scid={scid} tunnel_forward=false control={control} \
              video={video} audio={audio} max_size={max_size} max_fps={max_fps} \
              video_bit_rate={bitrate} send_device_meta=false send_stream_meta=false \
-             send_dummy_byte=false log_level=info cleanup=true{audio_extra}",
+             send_dummy_byte=false log_level=info cleanup=true{audio_extra}{encoder}",
             ver = opts.scrcpy_version,
             scid = opts.scid,
             control = opts.control,
@@ -80,6 +83,12 @@ impl ScrcpyServer {
             bitrate = opts.video_bit_rate,
             // PCM crudo: sin decodificar del lado PC y sin latencia de códec.
             audio_extra = if opts.audio { " audio_codec=raw" } else { "" },
+            encoder = opts
+                .video_encoder
+                .as_deref()
+                .filter(|e| e.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_'))
+                .map(|e| format!(" video_encoder={e}"))
+                .unwrap_or_default(),
         );
 
         let mut command = Command::new(super::adb_exe());
@@ -109,6 +118,25 @@ impl ScrcpyServer {
     pub fn scid(&self) -> &str {
         &self.scid
     }
+}
+
+/// Marca de "este teléfono necesita el codificador de video por software": algunos Samsung
+/// (p. ej. Galaxy S9 con Android 10) se cuelgan en su codificador H.264 por hardware apenas se
+/// configura ("stack corruption detected", Aborted). Se guarda junto a los logs para recordarlo.
+pub fn sw_encoder_marker(serial: &str) -> PathBuf {
+    let log = server_log_path(serial);
+    log.with_extension("sw-encoder")
+}
+
+/// Codificador H.264 por software de Android (presente desde Android 10).
+pub const SW_H264_ENCODER: &str = "c2.android.avc.encoder";
+
+/// ¿El log del server muestra que el codificador por hardware se cayó?
+pub fn hw_encoder_crashed(serial: &str) -> bool {
+    let Ok(bytes) = std::fs::read(server_log_path(serial)) else { return false };
+    let tail = String::from_utf8_lossy(&bytes[bytes.len().saturating_sub(4096)..]).to_lowercase();
+    // Solo fallas del codificador: un "Aborted" suelto también aparece al desenchufar.
+    tail.contains("stack corruption") || tail.contains("codecexception")
 }
 
 /// Ruta del log del server para un dispositivo: `%TEMP%/Aguara/server-<serial>.log`.

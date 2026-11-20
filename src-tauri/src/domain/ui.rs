@@ -11,6 +11,8 @@ pub struct UiNode {
     pub package: String,
     /// Centro del rectángulo del nodo, en px de pantalla.
     pub center: (i32, i32),
+    /// Rectángulo (x1, y1, x2, y2) en px de pantalla.
+    pub rect: (i32, i32, i32, i32),
     /// El nodo responde a toques (los textos dentro de un botón no).
     pub clickable: bool,
 }
@@ -27,13 +29,15 @@ pub fn parse_nodes(xml: &str) -> Vec<UiNode> {
             // Espacio delante: así el primer atributo también se encuentra como " nombre=".
             let tag = format!(" {}", &chunk[..chunk.find('>').unwrap_or(chunk.len())]);
             let tag = tag.as_str();
-            let center = parse_bounds(&attr(tag, "bounds")?)?;
+            let rect = parse_bounds(&attr(tag, "bounds")?)?;
+            let center = ((rect.0 + rect.2) / 2, (rect.1 + rect.3) / 2);
             Some(UiNode {
                 text: attr(tag, "text").unwrap_or_default(),
                 desc: attr(tag, "content-desc").unwrap_or_default(),
                 id: attr(tag, "resource-id").unwrap_or_default(),
                 package: attr(tag, "package").unwrap_or_default(),
                 center,
+                rect,
                 clickable: attr(tag, "clickable").is_some_and(|v| v == "true"),
             })
         })
@@ -57,15 +61,15 @@ fn attr(tag: &str, name: &str) -> Option<String> {
     Some(unescape(&tag[start..end]))
 }
 
-/// `"[x1,y1][x2,y2]"` -> centro.
-fn parse_bounds(b: &str) -> Option<(i32, i32)> {
+/// `"[x1,y1][x2,y2]"` -> (x1, y1, x2, y2).
+fn parse_bounds(b: &str) -> Option<(i32, i32, i32, i32)> {
     let nums: Vec<i32> = b
         .split(|c: char| !c.is_ascii_digit() && c != '-')
         .filter(|s| !s.is_empty())
         .filter_map(|s| s.parse().ok())
         .collect();
     match nums[..] {
-        [x1, y1, x2, y2] => Some(((x1 + x2) / 2, (y1 + y2) / 2)),
+        [x1, y1, x2, y2] => Some((x1, y1, x2, y2)),
         _ => None,
     }
 }

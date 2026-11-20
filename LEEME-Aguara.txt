@@ -1,4 +1,4 @@
-AGUARÁ 0.1.10 · versión de prueba
+AGUARÁ 0.1.11 · versión de prueba
 =================================
 
 Aguará muestra y maneja desde la PC varios teléfonos Android conectados por USB.
@@ -30,7 +30,8 @@ Además, en Xiaomi/Redmi:
   los toques no llegan.
 
 Además, en Samsung:
-- Instalá en la PC el "Samsung Android USB Driver" (sitio de Samsung para desarrolladores).
+- Instalá en la PC el "Samsung Android USB Driver" (sitio de Samsung para desarrolladores;
+  también está en esta carpeta como SAMSUNG_USB_Driver_v1.9.5.0.exe).
 - Desactivá Ajustes > Seguridad y privacidad > "Bloqueador automático". Si está activo,
   bloquea la depuración USB.
 
@@ -85,7 +86,9 @@ Cuentas
 
 Más opciones (botón "Más", los tres puntos de cada teléfono, o clic derecho en su barra)
 - Escuchar el audio del teléfono en la PC, cambiar el nombre, ver la ficha, reiniciar el video.
-- Aceptar solicitudes de Facebook: frena solo cuando no quedan. Mientras algo se hace solo
+- Aceptar solicitudes de Facebook: abre Facebook en Solicitudes y, antes de cada toque, lee
+  la pantalla y toca solo un "Confirmar" que tenga su "Eliminar" al lado. Frena si Facebook
+  sale de la lista (perfil, video, otra app) y cuando no quedan. Mientras algo se hace solo
   (aceptar solicitudes, cambiar de cuenta), arriba aparece "Detener tareas": lo frena al
   instante. El teléfono ocupado muestra un reloj de arena.
 
@@ -139,6 +142,9 @@ y las cuentas de Google siguen iniciadas.
   es tener una sola app abierta.
 - Se desconectan con muchos teléfonos: usá un hub USB con fuente propia. Los puertos de
   la PC solos no siempre dan la corriente suficiente.
+- Un teléfono se conecta y se desconecta sin parar (pasó con un Galaxy S9): su codificador
+  de video se cae. Aguará lo detecta solo y pasa ese teléfono a un codificador por software;
+  después del primer corte queda conectado.
 - Se ve la pantalla pero no responde: en Xiaomi/Redmi falta "Depuración USB (ajustes de
   seguridad)"; en Samsung, desactivar el "Bloqueador automático".
 

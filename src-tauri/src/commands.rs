@@ -641,13 +641,33 @@ fn is_confirm_button(n: &crate::domain::ui::UiNode) -> bool {
             || v.starts_with("confirmar solicitud")
             || v.starts_with("confirm request")
             || v.starts_with("confirm friend request")
+            || v == "aceptar"
+            || v == "accept"
+            || v.starts_with("aceptar la solicitud")
+            || v.starts_with("aceptar solicitud")
+            || v.starts_with("accept request")
+            || v.starts_with("accept friend request")
     })
 }
 
-/// Acepta las solicitudes de amistad pendientes en Facebook: lee la pantalla una vez, toca todos
-/// los "Confirmar" visibles con ~1 s entre toques, baja y repite. Termina cuando, después de
-/// bajar, no queda ninguno, o al llegar a `max` (aceptar cientos de golpe puede hacer que Facebook
-/// limite la cuenta). Devuelve cuántas aceptó.
+/// Botón "Eliminar" de una solicitud: marca que el Confirmar de su fila es de una solicitud.
+fn is_delete_button(n: &crate::domain::ui::UiNode) -> bool {
+    [&n.text, &n.desc].iter().any(|v| {
+        let v = v.trim().to_lowercase();
+        v == "eliminar"
+            || v == "delete"
+            || v == "remove"
+            || v.starts_with("eliminar la solicitud")
+            || v.starts_with("eliminar solicitud")
+            || v.starts_with("delete request")
+            || v.starts_with("delete friend request")
+    })
+}
+
+/// Acepta las solicitudes de amistad pendientes en Facebook. Antes de CADA toque lee la pantalla,
+/// busca un botón "Confirmar"/"Aceptar" que tenga su "Eliminar" en la misma fila y toca solo ese;
+/// después verifica que haya tenido efecto. Frena si Facebook sale de la lista (perfil, video,
+/// otra app), si no queda ninguna o al llegar a `max`. Devuelve cuántas se aceptaron de verdad.
 #[tauri::command]
 pub async fn accept_friend_requests(serial: String, max: Option<u32>, state: State<'_, AppState>) -> Result<u32, String> {
     let manager = state.manager.clone();
@@ -677,12 +697,55 @@ pub async fn accept_friend_requests(serial: String, max: Option<u32>, state: Sta
 
         // Encender y sacar el bloqueo: con la pantalla bloqueada Facebook no se ve ni se puede tocar.
         sh("input keyevent 224; wm dismiss-keyguard")?;
-        sh("am start -a android.intent.action.VIEW -d fb://friends/requests com.facebook.katana")?;
+        // ¿Estamos en la lista de Amigos/Solicitudes? Por sus títulos, o por una fila de solicitud
+        // (Confirmar con su Eliminar al lado). Un perfil o un video no tienen nada de eso.
+        let on_list = |nodes: &[crate::domain::ui::UiNode]| {
+            let titled = nodes.iter().any(|n| {
+                let v = format!("{} {}", n.text, n.desc).trim().to_lowercase();
+                [
+                    "solicitudes de amistad",
+                    "tus amigos",
+                    "personas que quizá",
+                    "personas que quizas",
+                    "friend requests",
+                    "your friends",
+                    "people you may know",
+                    "no hay solicitudes",
+                    "no friend requests",
+                ]
+                .iter()
+                .any(|k| v.starts_with(k))
+            });
+            let deletes: Vec<(i32, i32)> = nodes.iter().filter(|n| is_delete_button(n)).map(|n| n.center).collect();
+            titled
+                || nodes
+                    .iter()
+                    .filter(|n| is_confirm_button(n))
+                    .any(|n| deletes.iter().any(|d| (d.1 - n.center.1).abs() <= 30 && d.0 > n.center.0))
+        };
+        let friends_screen = on_list;
+        // Si Facebook quedó en otra cosa (comentarios, un video, un chat), el enlace no lo saca
+        // de ahí: se abre la app de cero (FLAG NEW_TASK | CLEAR_TASK) directo en Solicitudes.
+        let open_requests = || {
+            sh("am start -f 0x10008000 -a android.intent.action.VIEW -d fb://friends/requests com.facebook.katana")
+        };
+        open_requests()?;
         if !pause(3500) {
             return Ok(0);
         }
+        let mut nodes = read_screen()?;
+        if !friends_screen(&nodes) {
+            // Facebook a veces tarda o muestra antes el inicio: esperar y probar una vez más.
+            open_requests()?;
+            if !pause(3500) {
+                return Ok(0);
+            }
+            nodes = read_screen()?;
+            if !friends_screen(&nodes) {
+                return Err("Facebook no abrió la pantalla de solicitudes (¿sesión iniciada? probá abrir Facebook a mano y repetir)".into());
+            }
+        }
         // La pantalla de Amigos abre en sugerencias: pasar a la pestaña de solicitudes.
-        let nodes = read_screen()?;
         if let Some(tab) = nodes.iter().find(|n| {
             let d = n.desc.trim().to_lowercase();
             d == "solicitudes de amistad" || d == "friend requests"
@@ -693,90 +756,144 @@ pub async fn accept_friend_requests(serial: String, max: Option<u32>, state: Sta
             }
         }
 
+        // Zona segura de la pantalla: fuera de la barra de estado y de la barra de Android.
+        let (screen_w, screen_h) = {
+            let out = sh("wm size").unwrap_or_default();
+            // "Physical size: 720x1640" y, si hay, "Override size: ...": vale la última.
+            out.lines()
+                .filter_map(|l| l.split(':').nth(1))
+                .filter_map(|v| {
+                    let (w, h) = v.trim().split_once('x')?;
+                    Some((w.parse::<i32>().ok()?, h.parse::<i32>().ok()?))
+                })
+                .last()
+                .unwrap_or((720, 1640))
+        };
+        let safe_top = screen_h * 6 / 100;
+        let safe_bottom = screen_h - screen_h * 9 / 100;
         let mut accepted = 0u32;
         let mut saw_facebook = nodes.iter().any(|n| n.package == "com.facebook.katana");
-        let mut scrolled_empty = false;
-        let mut last_batch: Vec<(i32, i32)> = Vec::new();
-        let mut last_friends = 0usize;
-        // Pausa corta entre toques (0,6–1,1 s): alcanza para que Facebook registre cada uno.
-        let gap = || 600 + (std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH).map(|d| d.subsec_millis()).unwrap_or(0) as u64 / 2);
+        let mut scrolls = 0u32;
+        let mut fails = 0u32;
+        // Último toque, a verificar con la lectura siguiente: (cuántos "Confirmar" había, cuántos
+        // "Ahora son amigos" había).
+        let mut pending: Option<(usize, usize)> = None;
         let now_friends = |n: &crate::domain::ui::UiNode| {
             let v = format!("{} {}", n.text, n.desc).to_lowercase();
             v.contains("ahora son amigos") || v.contains("now friends")
         };
-        while accepted < max && !stopped(&flag) {
-            // Una sola lectura de pantalla por tanda: leerla tarda 2–3 s.
+        let count_confirm =
+            |nodes: &[crate::domain::ui::UiNode]| nodes.iter().filter(|n| n.clickable && is_confirm_button(n)).count();
+        let count_friends = |nodes: &[crate::domain::ui::UiNode]| nodes.iter().filter(|n| now_friends(n)).count();
+        // El botón a tocar se busca por su texto ("Confirmar"/"Aceptar") en la lectura recién
+        // hecha, y solo si en la misma fila está su "Eliminar": así es seguro que es una
+        // solicitud y no otro botón. Tiene que estar entero a la vista (no detrás de la barra de
+        // Android). Se toca uno solo y se vuelve a leer la pantalla: la lista se mueve con cada
+        // confirmación, así que nunca se reutilizan posiciones de una lectura anterior.
+        let request_button = |nodes: &[crate::domain::ui::UiNode]| -> Option<(i32, i32)> {
+            let deletes: Vec<(i32, i32)> = nodes.iter().filter(|n| is_delete_button(n)).map(|n| n.center).collect();
+            nodes
+                .iter()
+                .filter(|n| is_confirm_button(n))
+                .filter(|n| {
+                    let (_, y1, _, y2) = n.rect;
+                    y2 - y1 >= 40 && y1 >= safe_top && y2 <= safe_bottom
+                })
+                .filter(|n| deletes.iter().any(|d| (d.1 - n.center.1).abs() <= 30 && d.0 > n.center.0))
+                .min_by_key(|n| (!n.clickable, n.center.1))
+                .map(|n| n.center)
+        };
+        // Verifica el último toque: tuvo efecto si hay menos "Confirmar" o más "Ahora son amigos".
+        let verify = |nodes: &[crate::domain::ui::UiNode], pending: &mut Option<(usize, usize)>, accepted: &mut u32, fails: &mut u32| {
+            if let Some((confirms, friends)) = pending.take() {
+                if count_confirm(nodes) < confirms || count_friends(nodes) > friends {
+                    *accepted += 1;
+                    *fails = 0;
+                } else {
+                    *fails += 1;
+                }
+            }
+        };
+        let stop_with = |accepted: u32, msg: &str| -> Result<u32, String> {
+            if accepted > 0 {
+                Ok(accepted)
+            } else {
+                Err(msg.into())
+            }
+        };
+        loop {
+            if stopped(&flag) {
+                break;
+            }
             let nodes = match read_screen() {
                 Ok(n) => n,
                 Err(_) if accepted > 0 => break,
                 Err(e) => return Err(e),
             };
             saw_facebook |= nodes.iter().any(|n| n.package == "com.facebook.katana");
-            // Facebook avisa cuando no queda ninguna: terminar ahí, sin recorrer las sugerencias.
-            let none_left = nodes.iter().any(|n| {
+            verify(&nodes, &mut pending, &mut accepted, &mut fails);
+            if fails >= 2 {
+                return stop_with(accepted, "Facebook no respondió a los toques en Confirmar");
+            }
+            if accepted >= max {
+                break;
+            }
+            // Si ya no estamos en la lista de solicitudes (se abrió un perfil, un video, otra
+            // app), frenar: cualquier toque caería en otra cosa.
+            if !on_list(&nodes) {
+                return stop_with(accepted, "Facebook salió de la lista de solicitudes; frené para no tocar otra cosa");
+            }
+            // Facebook avisa cuando no queda ninguna.
+            if nodes.iter().any(|n| {
                 let v = format!("{} {}", n.text, n.desc).trim().to_lowercase();
                 v.starts_with("no hay solicitudes") || v.starts_with("no new requests") || v.starts_with("no friend requests")
-            });
-            if none_left {
+            }) {
                 break;
             }
-            let friends = nodes.iter().filter(|n| now_friends(n)).count();
-            // Cada botón aparece dos veces (el botón y su texto): quedarse con el que se toca.
-            let mut batch: Vec<(i32, i32)> =
-                nodes.iter().filter(|n| n.clickable && is_confirm_button(n)).map(|n| n.center).collect();
-            if batch.is_empty() {
-                batch = nodes.iter().filter(|n| is_confirm_button(n)).map(|n| n.center).collect();
+            match request_button(&nodes) {
+                Some((x, y)) => {
+                    scrolls = 0;
+                    // Si alguien cambió de app en el teléfono, no tocar. Con el espejo activo el
+                    // teléfono lista más de una pantalla: mirar todas las líneas.
+                    // Control y toque en una sola orden (una ida y vuelta menos): solo toca si
+                    // Facebook es lo único adelante.
+                    let before = (count_confirm(&nodes), count_friends(&nodes));
+                    let out = sh(&format!(
+                        "f=$(dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | grep 'u0 '); \
+                         if echo \"$f\" | grep -q com.facebook.katana && ! echo \"$f\" | grep -v -q com.facebook.katana; \
+                         then input tap {x} {y}; echo TAPPED; else echo OTHER; fi"
+                    ))?;
+                    if !out.contains("TAPPED") {
+                        return stop_with(accepted, "se cambió de app en el teléfono; frené para no tocar otra cosa");
+                    }
+                    pending = Some(before);
+                    // Corta: la lectura siguiente ya espera a que Facebook deje de moverse.
+                    if !pause(400) {
+                        break;
+                    }
+                }
+                None => {
+                    // Ninguna solicitud entera a la vista: bajar la lista (hasta 3 veces seguidas).
+                    if scrolls >= 3 {
+                        break;
+                    }
+                    scrolls += 1;
+                    sh(&format!(
+                        "input swipe {x} {from} {x} {to} 350",
+                        x = screen_w / 2,
+                        from = safe_bottom - 120,
+                        to = safe_top + 420
+                    ))?;
+                    if !pause(1000) {
+                        break;
+                    }
+                }
             }
-            if batch.is_empty() {
-                // Nada a la vista: bajar una vez por si hay más; si sigue vacío, ya no quedan.
-                if scrolled_empty {
-                    break;
-                }
-                scrolled_empty = true;
-                sh("input swipe 360 1200 360 500 250")?;
-                if !pause(900) {
-                    break;
-                }
-                continue;
-            }
-            scrolled_empty = false;
-            if batch == last_batch && friends <= last_friends {
-                // Los mismos botones en el mismo lugar y ningún "Ahora son amigos" nuevo: los
-                // toques anteriores no hicieron efecto. No contarlos y no insistir.
-                accepted = accepted.saturating_sub(batch.len() as u32);
-                if accepted == 0 {
-                    return Err("Facebook no respondió a los toques en Confirmar".into());
-                }
-                break;
-            }
-            last_friends = friends;
-            last_batch = batch.clone();
-            // De abajo hacia arriba: confirmar una fila no mueve las que están encima.
-            batch.sort_by_key(|c| std::cmp::Reverse(c.1));
-            for (x, y) in batch {
-                if accepted >= max || stopped(&flag) {
-                    break;
-                }
-                // Si alguien cambió de app en el teléfono, no tocar: el toque caería en otra app.
-                // Con el espejo activo el teléfono lista más de una pantalla y la primera suele
-                // decir `mCurrentFocus=null`: mirar todas las líneas, no solo la primera.
-                let focus = sh("dumpsys window | grep -E 'mCurrentFocus|mFocusedApp'")?;
-                let other_app = focus.lines().any(|l| {
-                    l.contains("u0 ") && !l.contains("com.facebook.katana") && !l.contains("=null")
-                });
-                if !focus.contains("com.facebook.katana") || other_app {
-                    return if accepted > 0 {
-                        Ok(accepted)
-                    } else {
-                        Err("se cambió de app en el teléfono; frené para no tocar otra cosa".into())
-                    };
-                }
-                sh(&format!("input tap {x} {y}"))?;
-                accepted += 1;
-                if !pause(gap()) {
-                    break;
-                }
+        }
+        // Verificar el último toque si quedó pendiente.
+        if pending.is_some() {
+            if let Ok(nodes) = read_screen() {
+                verify(&nodes, &mut pending, &mut accepted, &mut fails);
             }
         }
         // Con 0 aceptadas y sin haber visto Facebook, decir por qué. Si Facebook abrió, 0 = no

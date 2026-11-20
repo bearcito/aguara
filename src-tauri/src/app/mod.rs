@@ -130,6 +130,12 @@ impl SessionManager {
         // varias sesiones a la vez sin colisión de sockets.
         opts.scid = format!("{:08x}", scid_from(serial));
         let socket_name = format!("scrcpy_{}", opts.scid);
+        // Teléfonos cuyo codificador por hardware se cae: usar el de software.
+        let sw_marker = crate::transport::server::sw_encoder_marker(serial);
+        if sw_marker.exists() {
+            opts.video_encoder = Some(crate::transport::server::SW_H264_ENCODER.to_string());
+        }
+        let using_sw = opts.video_encoder.is_some();
 
         // Puerto efímero local; el server del device conecta de vuelta (tunnel_forward=false).
         let listener = TcpListener::bind("127.0.0.1:0")?;
@@ -171,8 +177,11 @@ impl SessionManager {
             let serial_owned = serial.to_string();
             let video = conn.video;
             let quality = params.jpeg_quality;
+            let marker = sw_marker.clone();
             std::thread::spawn(move || {
+                let mut frames = 0u64;
                 let _ = media::decode_h264_to_jpeg(video, quality, |frame| {
+                    frames += 1;
                     if !flag.load(Ordering::Relaxed) {
                         return;
                     }
@@ -181,6 +190,15 @@ impl SessionManager {
                     }
                     sink(&serial_owned, frame);
                 });
+                // Se cortó sin dar ni un cuadro y el teléfono dice que el codificador se cayó:
+                // la próxima vez (la reconexión automática) arranca con el de software.
+                if frames == 0
+                    && !using_sw
+                    && flag.load(Ordering::Relaxed)
+                    && crate::transport::server::hw_encoder_crashed(&serial_owned)
+                {
+                    let _ = std::fs::write(&marker, b"1");
+                }
                 // Si el stream terminó sin que lo detuviéramos nosotros, fue una desconexión.
                 if flag.load(Ordering::Relaxed) {
                     end(&serial_owned);
